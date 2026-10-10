@@ -88,6 +88,7 @@ filas = {}
 canais_squad = {}
 mensagens_fila = {}
 squads_em_criacao = set()
+recrutamentos_em_criacao = set()
 
 
 # ==========================================
@@ -344,26 +345,38 @@ class RecrutamentoView(discord.ui.View):
             )
             return
 
-        try:
-            if cargo_membro not in membro.roles:
-                await membro.add_roles(
-                    cargo_membro,
-                    reason="Recrutamento aprovado."
-                )
+        if cargo_recruta is None:
+            await interaction.edit_original_response(
+                content=f"Não encontrei o cargo `{CARGO_RECRUTA}`."
+            )
+            return
 
-            if cargo_recruta and cargo_recruta in membro.roles:
-                await membro.remove_roles(
-                    cargo_recruta,
-                    reason="Recrutamento aprovado."
+        try:
+            # Adiciona Sentinela e remove recruta.
+            await membro.add_roles(
+                cargo_membro,
+                reason="Recrutamento aprovado."
+            )
+
+            await membro.remove_roles(
+                cargo_recruta,
+                reason="Recrutamento aprovado."
+            )
+
+        except discord.Forbidden:
+            await interaction.edit_original_response(
+                content=(
+                    "❌ Não consegui alterar os cargos. "
+                    "Confira a permissão Gerenciar cargos "
+                    "e a hierarquia do bot."
                 )
+            )
+            return
 
         except discord.HTTPException as erro:
             print(f"[ERRO ALTERAR CARGOS] {erro}")
             await interaction.edit_original_response(
-                content=(
-                    "❌ Não consegui alterar os cargos. "
-                    "Confira Gerenciar cargos e a hierarquia do bot."
-                )
+                content="❌ O Discord não permitiu alterar os cargos."
             )
             return
 
@@ -478,6 +491,97 @@ async def garantir_mensagem_recrutamento(canal, membro):
     )
 
 
+async def criar_recrutamento(membro):
+    guild = membro.guild
+
+    if membro.id in recrutamentos_em_criacao:
+        return
+
+    recrutamentos_em_criacao.add(membro.id)
+
+    try:
+        topico = f"recrutamento_usuario:{membro.id}"
+
+        # Reaproveita um canal aberto, se já existir.
+        for canal_existente in guild.text_channels:
+            if (
+                canal_existente.topic
+                and topico in canal_existente.topic
+                and not recrutamento_encerrado(canal_existente)
+            ):
+                await garantir_mensagem_recrutamento(
+                    canal_existente, membro
+                )
+                return
+
+        categoria = guild.get_channel(
+            CATEGORIA_RECRUTAMENTO_ID
+        )
+
+        permissoes = {
+            guild.default_role: discord.PermissionOverwrite(
+                view_channel=False
+            ),
+            membro: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True
+            )
+        }
+
+        for cargo_id in (
+            CARGO_MODERADOR_ID,
+            CARGO_ADM_ID
+        ):
+            cargo = guild.get_role(cargo_id)
+
+            if cargo:
+                permissoes[cargo] = discord.PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    read_message_history=True
+                )
+
+        if guild.me:
+            permissoes[guild.me] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                manage_channels=True
+            )
+
+        nome_canal = f"recrutamento-{membro.name}".lower()
+        nome_canal = nome_canal.replace(" ", "-")[:90]
+
+        canal = await guild.create_text_channel(
+            name=nome_canal,
+            category=(
+                categoria
+                if isinstance(categoria, discord.CategoryChannel)
+                else None
+            ),
+            overwrites=permissoes,
+            topic=topico,
+            reason="Novo recrutamento Sentinela."
+        )
+
+        await garantir_mensagem_recrutamento(canal, membro)
+
+        print(f"[RECRUTAMENTO] Canal criado para {membro}.")
+
+    except discord.Forbidden:
+        print(
+            "[RECRUTAMENTO] Sem permissão para criar canal. "
+            "Confira Gerenciar canais."
+        )
+
+    except discord.HTTPException as erro:
+        print(f"[ERRO CRIAR RECRUTAMENTO] {erro}")
+
+    finally:
+        recrutamentos_em_criacao.discard(membro.id)
+
+
 # ==========================================
 # FILA DA GUERRA DE GUILDA
 # ==========================================
@@ -498,26 +602,20 @@ def criar_embed_fila(guild_id):
     )
 
     if fila:
-        # Cada jogador ocupa uma coluna.
-        # Os jogadores 1 e 2 ficam na primeira linha;
-        # os jogadores 3 e 4 ficam na segunda linha.
-        for indice, jogador in enumerate(fila):
-            embed.add_field(
-                name=f"**{indice + 1}.**",
-                value=(
-                    f"<@{jogador['id']}>\n"
-                    f"{jogador['emoji']} **{jogador['funcao']}**"
-                ),
-                inline=True
+        jogadores = []
+
+        for indice, jogador in enumerate(fila, start=1):
+            jogadores.append(
+                f"**{indice}.** <@{jogador['id']}>\n"
+                f"{jogador['emoji']} **{jogador['funcao']}**"
             )
 
-            # Depois de cada dupla, força uma nova linha.
-            if indice % 2 == 1:
-                embed.add_field(
-                    name="\u200b",
-                    value="\u200b",
-                    inline=False
-                )
+        embed.add_field(
+            name="\u200b",
+            value="\n\n".join(jogadores),
+            inline=False
+        )
+
     else:
         embed.add_field(
             name="\u200b",
@@ -545,14 +643,18 @@ async def atualizar_mensagem_fila(guild):
 
     try:
         mensagem = await canal.fetch_message(mensagem_id)
+
         await mensagem.edit(
             embed=criar_embed_fila(guild.id),
             view=FilaView()
         )
+
     except discord.NotFound:
         print("[FILA] A mensagem da fila foi apagada.")
+
     except discord.Forbidden:
         print("[FILA] Sem permissão para editar a mensagem.")
+
     except discord.HTTPException as erro:
         print(f"[ERRO ATUALIZAR FILA] {erro}")
 
@@ -678,14 +780,16 @@ async def registrar_jogador(interaction, funcao, emoji):
     try:
         await atualizar_mensagem_fila(guild)
 
-        if len(fila) == LIMITE_FILA:
-            if guild.id not in squads_em_criacao:
-                squads_em_criacao.add(guild.id)
+        if (
+            len(fila) == LIMITE_FILA
+            and guild.id not in squads_em_criacao
+        ):
+            squads_em_criacao.add(guild.id)
 
-                try:
-                    await criar_canal_squad(guild, list(fila))
-                finally:
-                    squads_em_criacao.discard(guild.id)
+            try:
+                await criar_canal_squad(guild, list(fila))
+            finally:
+                squads_em_criacao.discard(guild.id)
 
     except Exception as erro:
         print(
@@ -871,7 +975,6 @@ class FilaView(discord.ui.View):
                 return
 
             fila.pop(indice)
-
             canal_id = canais_squad.pop(guild.id, None)
 
             if canal_id:
@@ -997,6 +1100,44 @@ async def listaremojis(ctx):
 # ==========================================
 
 @bot.event
+async def on_member_join(membro):
+    # Dá o cargo de recruta para quem acabou de entrar.
+    cargo_recruta = discord.utils.get(
+        membro.guild.roles,
+        name=CARGO_RECRUTA
+    )
+
+    if cargo_recruta is None:
+        print(
+            f"[RECRUTAMENTO] Cargo não encontrado: "
+            f"{CARGO_RECRUTA}"
+        )
+        return
+
+    try:
+        await membro.add_roles(
+            cargo_recruta,
+            reason="Novo membro entrou no servidor."
+        )
+
+        print(
+            f"[RECRUTAMENTO] Cargo de recruta dado para {membro}."
+        )
+
+        # Cria o canal privado e publica os botões.
+        await criar_recrutamento(membro)
+
+    except discord.Forbidden:
+        print(
+            "[RECRUTAMENTO] Sem permissão para dar o cargo. "
+            "Confira Gerenciar cargos e a hierarquia do bot."
+        )
+
+    except discord.HTTPException as erro:
+        print(f"[ERRO AO RECEBER NOVO MEMBRO] {erro}")
+
+
+@bot.event
 async def on_member_update(before, after):
     cargo_recruta = discord.utils.get(
         after.guild.roles,
@@ -1020,74 +1161,12 @@ async def on_member_update(before, after):
         and cargo_membro in after.roles
     )
 
+    # Se o cargo de recruta for dado manualmente,
+    # também prepara o canal de recrutamento.
     if recebeu_recruta:
-        categoria = after.guild.get_channel(
-            CATEGORIA_RECRUTAMENTO_ID
-        )
+        await criar_recrutamento(after)
 
-        permissoes = {
-            after.guild.default_role:
-                discord.PermissionOverwrite(
-                    view_channel=False
-                ),
-            after:
-                discord.PermissionOverwrite(
-                    view_channel=True,
-                    send_messages=True,
-                    read_message_history=True
-                )
-        }
-
-        for cargo_id in (
-            CARGO_MODERADOR_ID,
-            CARGO_ADM_ID
-        ):
-            cargo = after.guild.get_role(cargo_id)
-
-            if cargo:
-                permissoes[cargo] = discord.PermissionOverwrite(
-                    view_channel=True,
-                    send_messages=True,
-                    read_message_history=True
-                )
-
-        if after.guild.me:
-            permissoes[after.guild.me] = (
-                discord.PermissionOverwrite(
-                    view_channel=True,
-                    send_messages=True,
-                    read_message_history=True,
-                    manage_channels=True
-                )
-            )
-
-        nome_canal = f"recrutamento-{after.name}".lower()
-        nome_canal = nome_canal.replace(" ", "-")[:90]
-
-        try:
-            canal = await after.guild.create_text_channel(
-                name=nome_canal,
-                category=(
-                    categoria
-                    if isinstance(categoria, discord.CategoryChannel)
-                    else None
-                ),
-                overwrites=permissoes,
-                topic=f"recrutamento_usuario:{after.id}",
-                reason="Novo recrutamento Sentinela."
-            )
-
-            await garantir_mensagem_recrutamento(canal, after)
-
-            print(f"[RECRUTAMENTO] Canal criado para {after}.")
-
-        except discord.Forbidden:
-            print(
-                "[RECRUTAMENTO] Sem permissão para criar canal."
-            )
-        except discord.HTTPException as erro:
-            print(f"[ERRO CRIAR RECRUTAMENTO] {erro}")
-
+    # Envia boas-vindas quando alguém recebe o cargo Sentinela.
     if recebeu_membro:
         canal_boas_vindas = after.guild.get_channel(
             CANAL_BOAS_VINDAS_ID
@@ -1099,11 +1178,17 @@ async def on_member_update(before, after):
 
         mencao_regras = (
             canal_regras.mention
-            if isinstance(canal_regras, discord.TextChannel)
+            if isinstance(
+                canal_regras,
+                discord.TextChannel
+            )
             else f"<#{CANAL_REGRAS_ID}>"
         )
 
-        if isinstance(canal_boas_vindas, discord.TextChannel):
+        if isinstance(
+            canal_boas_vindas,
+            discord.TextChannel
+        ):
             embed = discord.Embed(
                 title="🦁 NOVO SENTINELA NA ÁREA!",
                 description=(
