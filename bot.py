@@ -1,7 +1,6 @@
 
-
-
 import os
+import asyncio
 import discord
 from discord.ext import commands
 
@@ -11,6 +10,7 @@ from discord.ext import commands
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 LIMITE_FILA = 4
+TEMPO_EXCLUSAO_CANAL = 5
 
 CARGO_RECRUTA = "| 🔰recruta"
 CARGO_MEMBRO = "| 🦁 Sentinela"
@@ -37,6 +37,11 @@ EMOJI_SQUAD = discord.PartialEmoji(
 EMOJI_ENTRAR = discord.PartialEmoji(
     name="squad_ff",
     id=1557943886230454332
+)
+
+EMOJI_APROVAR = discord.PartialEmoji(
+    name="emoji_aprovar",
+    id=1558331820985163817
 )
 
 EMOJI_SENTINELA_URL = (
@@ -67,10 +72,6 @@ def obter_fila(guild_id):
     return filas[guild_id]
 
 
-# ==============================
-# FUNÇÕES DE RECRUTAMENTO
-# ==============================
-
 def eh_recrutador(interaction):
     if interaction.guild is None:
         return False
@@ -78,11 +79,9 @@ def eh_recrutador(interaction):
     if not isinstance(interaction.user, discord.Member):
         return False
 
-    # Administradores do servidor podem aprovar.
     if interaction.user.guild_permissions.administrator:
         return True
 
-    # Moderadores/recrutadores autorizados pelos IDs.
     return any(
         cargo.id in CARGOS_RECRUTADORES
         for cargo in interaction.user.roles
@@ -121,6 +120,21 @@ def recrutamento_encerrado(canal):
     )
 
 
+async def excluir_canal_recrutamento(canal):
+    await asyncio.sleep(TEMPO_EXCLUSAO_CANAL)
+
+    try:
+        await canal.delete(
+            reason="Recrutamento encerrado."
+        )
+    except discord.NotFound:
+        pass
+    except discord.Forbidden:
+        print("Sem permissão para excluir o canal de recrutamento.")
+    except discord.HTTPException as erro:
+        print(f"Erro ao excluir canal de recrutamento: {erro}")
+
+
 # ==============================
 # CONFIRMAÇÃO DA RECUSA
 # ==============================
@@ -134,7 +148,7 @@ class ConfirmarRecusaView(discord.ui.View):
     @discord.ui.button(
         label="Confirmar recusa",
         emoji="❌",
-        style=discord.ButtonStyle.danger,
+        style=discord.ButtonStyle.secondary,
         custom_id="sentinela_confirmar_recusa"
     )
     async def confirmar(
@@ -183,9 +197,7 @@ class ConfirmarRecusaView(discord.ui.View):
                 membro = await guild.fetch_member(
                     self.recrutado_id
                 )
-            except discord.NotFound:
-                membro = None
-            except discord.HTTPException:
+            except (discord.NotFound, discord.HTTPException):
                 membro = None
 
         cargo_recruta = discord.utils.get(
@@ -198,10 +210,7 @@ class ConfirmarRecusaView(discord.ui.View):
                 if cargo_recruta in membro.roles:
                     await membro.remove_roles(
                         cargo_recruta,
-                        reason=(
-                            f"Recrutamento recusado por "
-                            f"{interaction.user}"
-                        )
+                        reason=f"Recrutamento recusado por {interaction.user}"
                     )
             except discord.Forbidden:
                 await interaction.response.send_message(
@@ -212,10 +221,8 @@ class ConfirmarRecusaView(discord.ui.View):
                 return
             except discord.HTTPException as erro:
                 print(f"Erro ao retirar cargo de recruta: {erro}")
-
                 await interaction.response.send_message(
-                    "❌ O Discord não permitiu alterar o cargo. "
-                    "Tente novamente.",
+                    "❌ Não consegui alterar o cargo. Tente novamente.",
                     ephemeral=True
                 )
                 return
@@ -227,34 +234,32 @@ class ConfirmarRecusaView(discord.ui.View):
                 reason="Recrutamento recusado."
             )
 
-            # O recrutado deixa de ver o canal encerrado.
             if membro is not None:
                 await canal.set_permissions(
                     membro,
                     view_channel=False,
                     send_messages=False,
-                    read_message_history=False,
-                    reason="Recrutamento encerrado."
+                    read_message_history=False
                 )
 
             await canal.send(
                 "❌ **RECRUTAMENTO ENCERRADO**\n\n"
                 "A equipe decidiu não seguir com este "
-                "recrutamento neste momento."
+                "recrutamento neste momento.\n\n"
+                f"Este canal será excluído em {TEMPO_EXCLUSAO_CANAL} segundos."
             )
 
         except discord.Forbidden:
-            print(
-                "Sem permissão para encerrar o canal "
-                "de recrutamento."
-            )
+            print("Sem permissão para encerrar o canal de recrutamento.")
         except discord.HTTPException as erro:
             print(f"Erro ao encerrar recrutamento: {erro}")
 
         await interaction.response.edit_message(
-            content="❌ Recrutamento recusado e encerrado.",
+            content="❌ Recrutamento recusado. O canal será excluído em 5 segundos.",
             view=None
         )
+
+        await excluir_canal_recrutamento(canal)
 
     @discord.ui.button(
         label="Cancelar",
@@ -274,7 +279,7 @@ class ConfirmarRecusaView(discord.ui.View):
 
 
 # ==============================
-# BOTÕES DE APROVAÇÃO
+# BOTÕES DE RECRUTAMENTO
 # ==============================
 
 class RecrutamentoView(discord.ui.View):
@@ -284,10 +289,7 @@ class RecrutamentoView(discord.ui.View):
 
     @discord.ui.button(
         label="Aprovar",
-        emoji=discord.PartialEmoji(
-            name="emoji_aprovar",
-            id=1558331820985163817
-        ),
+        emoji=EMOJI_APROVAR,
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_aprovar_recrutamento"
     )
@@ -298,8 +300,7 @@ class RecrutamentoView(discord.ui.View):
     ):
         if not eh_recrutador(interaction):
             await interaction.response.send_message(
-                "❌ Você não tem permissão para aprovar "
-                "este recrutamento.",
+                "❌ Você não tem permissão para aprovar este recrutamento.",
                 ephemeral=True
             )
             return
@@ -307,9 +308,7 @@ class RecrutamentoView(discord.ui.View):
         guild = interaction.guild
         canal = interaction.channel
 
-        if guild is None or not isinstance(
-            canal, discord.TextChannel
-        ):
+        if guild is None or not isinstance(canal, discord.TextChannel):
             await interaction.response.send_message(
                 "Não consegui identificar o servidor ou canal.",
                 ephemeral=True
@@ -345,8 +344,7 @@ class RecrutamentoView(discord.ui.View):
                 return
             except discord.HTTPException:
                 await interaction.response.send_message(
-                    "❌ Não consegui localizar o recrutado. "
-                    "Tente novamente.",
+                    "❌ Não consegui localizar o recrutado. Tente novamente.",
                     ephemeral=True
                 )
                 return
@@ -355,7 +353,6 @@ class RecrutamentoView(discord.ui.View):
             guild.roles,
             name=CARGO_RECRUTA
         )
-
         cargo_membro = discord.utils.get(
             guild.roles,
             name=CARGO_MEMBRO
@@ -382,18 +379,15 @@ class RecrutamentoView(discord.ui.View):
             )
             return
 
+        # Reconhece a interação antes de alterar os cargos.
+        await interaction.response.defer()
+
         try:
-            # Primeiro adiciona o cargo de membro.
-            # Isso aciona a mensagem de boas-vindas existente.
             await membro.add_roles(
                 cargo_membro,
-                reason=(
-                    f"Recrutamento aprovado por "
-                    f"{interaction.user}"
-                )
+                reason=f"Recrutamento aprovado por {interaction.user}"
             )
 
-            # Depois remove o cargo de recruta.
             if cargo_recruta in membro.roles:
                 await membro.remove_roles(
                     cargo_recruta,
@@ -401,21 +395,17 @@ class RecrutamentoView(discord.ui.View):
                 )
 
         except discord.Forbidden:
-            await interaction.response.send_message(
-                "❌ Não consegui alterar os cargos. "
-                "Verifique se o bot tem Gerenciar Cargos "
-                "e se seu cargo está acima dos cargos envolvidos.",
+            await interaction.followup.send(
+                "❌ Não consegui alterar os cargos. Verifique "
+                "a permissão Gerenciar Cargos e a hierarquia.",
                 ephemeral=True
             )
             return
-
         except discord.HTTPException as erro:
             print(f"Erro ao aprovar recrutado: {erro}")
-
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ O Discord não permitiu concluir a aprovação. "
-                "Confira os cargos do usuário antes de tentar "
-                "novamente.",
+                "Confira os cargos do usuário antes de tentar novamente.",
                 ephemeral=True
             )
             return
@@ -427,28 +417,27 @@ class RecrutamentoView(discord.ui.View):
                 reason="Recrutamento aprovado."
             )
         except discord.HTTPException as erro:
-            print(f"Erro ao atualizar tópico do canal: {erro}")
+            print(f"Erro ao atualizar tópico: {erro}")
 
         await canal.send(
-            f"✅ **RECRUTAMENTO APROVADO!**\n\n"
-            f"Parabéns, {membro.mention}! Agora você faz "
-            "parte da **Sentinela**. 🦁💛\n"
-            "A mensagem de boas-vindas será enviada "
-            "pelo sistema de cargos."
+            "✅ **RECRUTAMENTO APROVADO!**\n\n"
+            f"Parabéns, {membro.mention}! Agora você faz parte "
+            "da **Sentinela**. 🦁💛\n"
+            "A mensagem de boas-vindas será enviada pelo sistema de cargos.\n\n"
+            f"Este canal será excluído em {TEMPO_EXCLUSAO_CANAL} segundos."
         )
 
-        await interaction.response.edit_message(
-            content=(
-                f"✅ Recrutamento de {membro.mention} "
-                "aprovado com sucesso!"
-            ),
+        await interaction.edit_original_response(
+            content=f"✅ Recrutamento de {membro.mention} aprovado com sucesso!",
             view=None
         )
+
+        await excluir_canal_recrutamento(canal)
 
     @discord.ui.button(
         label="Recusar",
         emoji="❌",
-        style=discord.ButtonStyle.danger,
+        style=discord.ButtonStyle.secondary,
         custom_id="sentinela_recusar_recrutamento"
     )
     async def recusar(
@@ -458,8 +447,7 @@ class RecrutamentoView(discord.ui.View):
     ):
         if not eh_recrutador(interaction):
             await interaction.response.send_message(
-                "❌ Você não tem permissão para recusar "
-                "este recrutamento.",
+                "❌ Você não tem permissão para recusar este recrutamento.",
                 ephemeral=True
             )
             return
@@ -491,8 +479,7 @@ class RecrutamentoView(discord.ui.View):
 
         await interaction.response.send_message(
             "⚠️ **Tem certeza que deseja recusar este recrutado?**\n"
-            "O cargo de recruta será retirado e o acesso ao "
-            "canal será encerrado.",
+            "O cargo de recruta será retirado e o acesso ao canal será encerrado.",
             view=ConfirmarRecusaView(recrutado_id),
             ephemeral=True
         )
@@ -521,9 +508,7 @@ def criar_embed_fila(guild_id):
     else:
         lista = "\n".join(
             f"**{numero}.** <@{jogador_id}>"
-            for numero, jogador_id in enumerate(
-                jogadores, start=1
-            )
+            for numero, jogador_id in enumerate(jogadores, start=1)
         )
 
     embed.add_field(
@@ -541,7 +526,7 @@ def criar_embed_fila(guild_id):
 
 
 # ==============================
-# CRIAR CANAL PRIVADO DO SQUAD
+# CANAL PRIVADO DO SQUAD
 # ==============================
 
 async def criar_canal_squad(guild, jogadores, categoria=None):
@@ -577,10 +562,7 @@ async def criar_canal_squad(guild, jogadores, categoria=None):
         name="🔒・squad-sentinela",
         category=categoria,
         overwrites=permissoes,
-        topic=(
-            "Canal privado da equipe de Guerra de Guilda "
-            "da Sentinela."
-        )
+        topic="Canal privado da equipe de Guerra de Guilda da Sentinela."
     )
 
     mencoes = " ".join(
@@ -650,10 +632,7 @@ class FilaView(discord.ui.View):
             try:
                 categoria = None
 
-                if isinstance(
-                    interaction.channel,
-                    discord.TextChannel
-                ):
+                if isinstance(interaction.channel, discord.TextChannel):
                     categoria = interaction.channel.category
 
                 canal_criado = await criar_canal_squad(
@@ -666,15 +645,13 @@ class FilaView(discord.ui.View):
 
             except discord.Forbidden:
                 jogadores.remove(jogador_id)
-
                 await interaction.response.edit_message(
                     embed=criar_embed_fila(guild_id),
                     view=self
                 )
-
                 await interaction.followup.send(
                     "❌ Não consegui criar o canal privado. "
-                    "Confira se o bot tem a permissão Gerenciar Canais.",
+                    "Confira se o bot tem Gerenciar Canais.",
                     ephemeral=True
                 )
                 return
@@ -682,15 +659,12 @@ class FilaView(discord.ui.View):
             except discord.HTTPException as erro:
                 jogadores.remove(jogador_id)
                 print(f"Erro ao criar canal do squad: {erro}")
-
                 await interaction.response.edit_message(
                     embed=criar_embed_fila(guild_id),
                     view=self
                 )
-
                 await interaction.followup.send(
-                    "❌ O Discord não permitiu criar o canal agora. "
-                    "Tente novamente.",
+                    "❌ O Discord não permitiu criar o canal agora. Tente novamente.",
                     ephemeral=True
                 )
                 return
@@ -702,8 +676,7 @@ class FilaView(discord.ui.View):
 
         if canal_criado is not None:
             await interaction.followup.send(
-                f"🏆 **Squad completo!** Canal privado: "
-                f"{canal_criado.mention}",
+                f"🏆 **Squad completo!** Canal privado: {canal_criado.mention}",
                 ephemeral=True
             )
 
@@ -758,7 +731,7 @@ class FilaView(discord.ui.View):
 
 
 # ==============================
-# COMANDO FILA
+# COMANDOS
 # ==============================
 
 @bot.command(name="fila")
@@ -770,10 +743,6 @@ async def fila(ctx):
     )
 
 
-# ==============================
-# COMANDO PING
-# ==============================
-
 @bot.command(name="ping")
 async def ping(ctx):
     latencia = round(bot.latency * 1000)
@@ -783,10 +752,6 @@ async def ping(ctx):
         f"📡 Latência: **{latencia} ms**"
     )
 
-
-# ==============================
-# COMANDO SENTINELA
-# ==============================
 
 @bot.command(name="sentinela")
 async def sentinela(ctx):
@@ -804,10 +769,6 @@ async def sentinela(ctx):
 
     await ctx.send(embed=embed)
 
-
-# ==============================
-# COMANDO AJUDA
-# ==============================
 
 @bot.command(name="ajuda")
 async def ajuda(ctx):
@@ -871,10 +832,7 @@ async def on_member_update(before, after):
         name=CARGO_MEMBRO
     )
 
-    # --------------------------------
-    # RECEBEU O CARGO DE RECRUTA
-    # --------------------------------
-
+    # Recebeu o cargo de recruta
     recebeu_recruta = (
         cargo_recruta is not None
         and cargo_recruta.id not in cargos_antes
@@ -911,37 +869,30 @@ async def on_member_update(before, after):
             bot_membro = after.guild.me
 
             if bot_membro is not None:
-                permissoes[bot_membro] = (
-                    discord.PermissionOverwrite(
-                        view_channel=True,
-                        send_messages=True,
-                        read_message_history=True,
-                        manage_channels=True,
-                        manage_messages=True
-                    )
+                permissoes[bot_membro] = discord.PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    read_message_history=True,
+                    manage_channels=True,
+                    manage_messages=True
                 )
 
             for cargo_id in CARGOS_RECRUTADORES:
                 cargo = after.guild.get_role(cargo_id)
 
                 if cargo is not None:
-                    permissoes[cargo] = (
-                        discord.PermissionOverwrite(
-                            view_channel=True,
-                            send_messages=True,
-                            read_message_history=True,
-                            manage_messages=True
-                        )
+                    permissoes[cargo] = discord.PermissionOverwrite(
+                        view_channel=True,
+                        send_messages=True,
+                        read_message_history=True,
+                        manage_messages=True
                     )
 
             categoria = after.guild.get_channel(
                 CATEGORIA_RECRUTAMENTO_ID
             )
 
-            if not isinstance(
-                categoria,
-                discord.CategoryChannel
-            ):
+            if not isinstance(categoria, discord.CategoryChannel):
                 categoria = None
 
             nome_seguro = after.display_name.lower()
@@ -973,7 +924,7 @@ async def on_member_update(before, after):
                         f"Salve, {after.mention}! Bem-vindo(a) "
                         "ao seu canal de recrutamento. 💛\n\n"
                         "A equipe vai conversar com você por aqui.\n\n"
-                        "Aguardem a avaliação de um ADM ou "
+                        "Aguarde a avaliação de um ADM ou "
                         "moderador para concluir o recrutamento."
                     ),
                     color=discord.Color.gold()
@@ -986,18 +937,12 @@ async def on_member_update(before, after):
 
             except discord.Forbidden:
                 print(
-                    f"Sem permissão para criar canal de recrutamento "
-                    f"para {after}."
+                    f"Sem permissão para criar canal de recrutamento para {after}."
                 )
-
             except discord.HTTPException as erro:
                 print(f"Erro no recrutamento: {erro}")
 
-    # --------------------------------
-    # RECEBEU O CARGO SENTINELA
-    # ENVIA A MENSAGEM DE BOAS-VINDAS
-    # --------------------------------
-
+    # Recebeu o cargo Sentinela: enviar boas-vindas
     recebeu_cargo_membro = (
         cargo_membro is not None
         and cargo_membro.id not in cargos_antes
@@ -1009,10 +954,7 @@ async def on_member_update(before, after):
             CANAL_BOAS_VINDAS_ID
         )
 
-        if isinstance(
-            canal_boas_vindas,
-            discord.TextChannel
-        ):
+        if isinstance(canal_boas_vindas, discord.TextChannel):
             embed = discord.Embed(
                 title="🟡 NOVO SENTINELA NA ÁREA! 🦁",
                 description=(
@@ -1036,30 +978,21 @@ async def on_member_update(before, after):
                     content=after.mention,
                     embed=embed
                 )
-
-                print(
-                    f"Boas-vindas enviadas para {after} "
-                    "após receber o cargo Sentinela."
-                )
+                print(f"Boas-vindas enviadas para {after}.")
 
             except discord.Forbidden:
                 print(
                     "Sem permissão para enviar boas-vindas. "
                     "Confira as permissões do canal."
                 )
-
             except discord.HTTPException as erro:
                 print(f"Erro ao enviar boas-vindas: {erro}")
 
     if cargo_recruta is None:
-        print(
-            f"Cargo de recruta não encontrado: {CARGO_RECRUTA}"
-        )
+        print(f"Cargo de recruta não encontrado: {CARGO_RECRUTA}")
 
     if cargo_membro is None:
-        print(
-            f"Cargo Sentinela não encontrado: {CARGO_MEMBRO}"
-        )
+        print(f"Cargo Sentinela não encontrado: {CARGO_MEMBRO}")
 
 
 # ==============================
