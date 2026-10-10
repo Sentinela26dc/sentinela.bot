@@ -28,6 +28,7 @@ IMAGEM_BOAS_VINDAS = (
     "cfa8acf9d3323076c8f1a4c5071a36c6.jpg"
 )
 
+# Emojis personalizados da fila
 EMOJI_SQUAD = discord.PartialEmoji(
     name="squad_ff",
     id=1557929631972327426
@@ -42,37 +43,12 @@ EMOJI_SENTINELA_URL = (
     "https://cdn.discordapp.com/emojis/1557941358990200852.png"
 )
 
-# ==========================================
-# EMOJIS PERSONALIZADOS
-# ==========================================
-
-EMOJI_RUSHADOR = discord.PartialEmoji(
-    name="rush",
-    id=1558574781308084375
-)
-
-EMOJI_ATIRADOR = discord.PartialEmoji(
-    name="atirador",
-    id=1558574948392374303
-)
-
-EMOJI_FUZILEIRO = discord.PartialEmoji(
-    name="fuzileiro",
-    id=1558575072996753551
-)
-
-EMOJI_GRANADEIRO = discord.PartialEmoji(
-    name="granadeiro",
-    id=1558575102856269985
-)
-
-EMOJI_SUPORTE = discord.PartialEmoji(
-    name="suporte",
-    id=1558575138759381033
-)
-
-
-
+# Emojis comuns para evitar o erro Invalid emoji
+EMOJI_RUSHADOR = "⚡"
+EMOJI_ATIRADOR = "🎯"
+EMOJI_FUZILEIRO = "🔫"
+EMOJI_GRANADEIRO = "💣"
+EMOJI_SUPORTE = "🛡️"
 
 # ==========================================
 # DISCORD
@@ -110,13 +86,13 @@ def eh_recrutador(membro):
     if membro.guild_permissions.administrator:
         return True
 
-    cargos_autorizados = {
+    autorizados = {
         CARGO_ADM_ID,
         CARGO_MODERADOR_ID
     }
 
     return any(
-        cargo.id in cargos_autorizados
+        cargo.id in autorizados
         for cargo in membro.roles
     )
 
@@ -149,7 +125,9 @@ async def excluir_canal_recrutamento(canal):
     await asyncio.sleep(TEMPO_EXCLUSAO_CANAL)
 
     try:
-        await canal.delete(reason="Recrutamento encerrado.")
+        await canal.delete(
+            reason="Recrutamento encerrado."
+        )
     except discord.HTTPException as erro:
         print(f"[ERRO EXCLUIR RECRUTAMENTO] {erro}")
 
@@ -170,7 +148,7 @@ class ConfirmarRecusaView(discord.ui.View):
     async def confirmar(self, interaction, button):
         if not eh_recrutador(interaction.user):
             await interaction.response.send_message(
-                "❌ Você não tem permissão para fazer isso.",
+                "❌ Você não tem permissão para isso.",
                 ephemeral=True
             )
             return
@@ -207,15 +185,15 @@ class ConfirmarRecusaView(discord.ui.View):
 
         membro = interaction.guild.get_member(recrutado_id)
 
-        cargo_recruta = discord.utils.get(
+        cargo = discord.utils.get(
             interaction.guild.roles,
             name=CARGO_RECRUTA
         )
 
-        if membro and cargo_recruta and cargo_recruta in membro.roles:
+        if membro and cargo and cargo in membro.roles:
             try:
                 await membro.remove_roles(
-                    cargo_recruta,
+                    cargo,
                     reason="Recrutamento recusado."
                 )
             except discord.HTTPException as erro:
@@ -223,7 +201,7 @@ class ConfirmarRecusaView(discord.ui.View):
                 await interaction.edit_original_response(
                     content=(
                         "❌ Não consegui remover o cargo. "
-                        "Confira as permissões e a hierarquia do bot."
+                        "Confira as permissões do bot."
                     )
                 )
                 return
@@ -250,13 +228,19 @@ class ConfirmarRecusaView(discord.ui.View):
         except discord.HTTPException as erro:
             print(f"[ERRO CONCLUIR RECUSA] {erro}")
 
-
     @discord.ui.button(
         label="Cancelar",
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_cancelar_recusa"
     )
     async def cancelar(self, interaction, button):
+        if not eh_recrutador(interaction.user):
+            await interaction.response.send_message(
+                "❌ Você não tem permissão para isso.",
+                ephemeral=True
+            )
+            return
+
         await interaction.response.edit_message(
             content="Recusa cancelada.",
             view=None
@@ -264,7 +248,7 @@ class ConfirmarRecusaView(discord.ui.View):
 
 
 # ==========================================
-# APROVAR OU RECUSAR RECRUTAMENTO
+# APROVACAO E RECUSA DE RECRUTAMENTO
 # ==========================================
 
 class RecrutamentoView(discord.ui.View):
@@ -280,8 +264,7 @@ class RecrutamentoView(discord.ui.View):
     async def aprovar(self, interaction, button):
         if not eh_recrutador(interaction.user):
             await interaction.response.send_message(
-                "❌ Não reconheci seus cargos de Adm/Moderador. "
-                "Confira os IDs configurados no bot.",
+                "❌ Você não tem permissão para aprovar.",
                 ephemeral=True
             )
             return
@@ -394,7 +377,7 @@ class RecrutamentoView(discord.ui.View):
     async def recusar(self, interaction, button):
         if not eh_recrutador(interaction.user):
             await interaction.response.send_message(
-                "❌ Você não tem permissão para recusar recrutados.",
+                "❌ Você não tem permissão para recusar.",
                 ephemeral=True
             )
             return
@@ -444,7 +427,7 @@ async def garantir_mensagem_recrutamento(canal, membro):
     moderador = canal.guild.get_role(CARGO_MODERADOR_ID)
     adm = canal.guild.get_role(CARGO_ADM_ID)
 
-    mencoes_equipe = " ".join(
+    mencoes = " ".join(
         cargo.mention
         for cargo in (moderador, adm)
         if cargo is not None
@@ -453,7 +436,7 @@ async def garantir_mensagem_recrutamento(canal, membro):
     async for mensagem in canal.history(limit=20):
         if mensagem.author == bot.user and mensagem.embeds:
             await mensagem.edit(
-                content=mencoes_equipe or None,
+                content=mencoes or None,
                 embed=embed,
                 view=RecrutamentoView(),
                 allowed_mentions=discord.AllowedMentions(
@@ -464,7 +447,7 @@ async def garantir_mensagem_recrutamento(canal, membro):
             return
 
     await canal.send(
-        content=mencoes_equipe or None,
+        content=mencoes or None,
         embed=embed,
         view=RecrutamentoView(),
         allowed_mentions=discord.AllowedMentions(
@@ -494,18 +477,17 @@ def criar_embed_fila(guild_id):
     )
 
     if fila:
-        texto_jogadores = "\n".join(
-            f"**{numero}.** <@{jogador['id']}> {jogador['emoji']}"
+        texto = "\n".join(
+            f"**{numero}.** <@{jogador['id']}> "
+            f"{jogador['emoji']}"
             for numero, jogador in enumerate(fila, start=1)
         )
     else:
-        texto_jogadores = (
-            "A fila está vazia. Entre e forme seu squad!"
-        )
+        texto = "A fila está vazia. Entre e forme seu squad!"
 
     embed.add_field(
         name="\u200b",
-        value=texto_jogadores,
+        value=texto,
         inline=False
     )
 
@@ -533,13 +515,10 @@ async def atualizar_mensagem_fila(guild):
             embed=criar_embed_fila(guild.id),
             view=FilaView()
         )
-
     except discord.NotFound:
         print("[FILA] A mensagem da fila foi apagada.")
-
     except discord.Forbidden:
         print("[FILA] Sem permissão para editar a mensagem.")
-
     except discord.HTTPException as erro:
         print(f"[ERRO ATUALIZAR FILA] {erro}")
 
@@ -629,7 +608,6 @@ async def registrar_jogador(interaction, funcao, emoji):
         )
         return
 
-    # Responde imediatamente ao Discord para evitar timeout.
     await interaction.response.defer(
         ephemeral=True,
         thinking=True
@@ -683,91 +661,66 @@ async def registrar_jogador(interaction, funcao, emoji):
 
 
 # ==========================================
-# ESCOLHA DE FUNCAO - CORRIGIDA
+# ESCOLHA DE FUNCAO
 # ==========================================
 
 class EscolherFuncaoView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=180)
 
-    async def on_error(self, interaction, error, item):
-        print(
-            f"[ERRO SELECIONAR FUNCAO] "
-            f"{type(error).__name__}: {error!r}"
-        )
-
-        try:
-            mensagem = (
-                "❌ Ocorreu um erro ao selecionar sua função. "
-                "Tente novamente."
-            )
-
-            if interaction.response.is_done():
-                await interaction.followup.send(
-                    mensagem,
-                    ephemeral=True
-                )
-            else:
-                await interaction.response.send_message(
-                    mensagem,
-                    ephemeral=True
-                )
-        except Exception as erro:
-            print(f"[ERRO AO AVISAR JOGADOR] {erro!r}")
-
     @discord.ui.button(
         label="Rushador",
-        emoji=EMOJI_RUSHADOR,
+        emoji="⚡",
         style=discord.ButtonStyle.secondary,
         row=0
     )
     async def rushador(self, interaction, button):
         await registrar_jogador(
-            interaction, "Rushador", EMOJI_RUSHADOR
+            interaction, "Rushador", "⚡"
         )
 
     @discord.ui.button(
         label="Fuzileiro",
-        emoji=EMOJI_FUZILEIRO,
+        emoji="🔫",
         style=discord.ButtonStyle.secondary,
         row=0
     )
     async def fuzileiro(self, interaction, button):
         await registrar_jogador(
-            interaction, "Fuzileiro", EMOJI_FUZILEIRO
+            interaction, "Fuzileiro", "🔫"
         )
 
     @discord.ui.button(
         label="Atirador",
-        emoji=EMOJI_ATIRADOR,
+        emoji="🎯",
         style=discord.ButtonStyle.secondary,
         row=1
     )
     async def atirador(self, interaction, button):
         await registrar_jogador(
-            interaction, "Atirador", EMOJI_ATIRADOR
+            interaction, "Atirador", "🎯"
         )
 
     @discord.ui.button(
         label="Suporte",
-        emoji=EMOJI_SUPORTE,
+        emoji="🛡️",
         style=discord.ButtonStyle.secondary,
         row=1
     )
     async def suporte(self, interaction, button):
         await registrar_jogador(
-            interaction, "Suporte", EMOJI_SUPORTE
+            interaction, "Suporte", "🛡️"
         )
 
     @discord.ui.button(
         label="Granadeiro",
-        emoji=EMOJI_GRANADEIRO,
+        emoji="💣",
         style=discord.ButtonStyle.secondary,
         row=1
     )
     async def granadeiro(self, interaction, button):
         await registrar_jogador(
-            interaction, "Granadeiro", EMOJI_GRANADEIRO
+            interaction, "Granadeiro", "💣"
         )
 
 
@@ -787,14 +740,16 @@ class FilaView(discord.ui.View):
     )
     async def entrar(self, interaction, button):
         try:
-            if interaction.guild is None:
+            guild = interaction.guild
+
+            if guild is None:
                 await interaction.response.send_message(
                     "❌ Esse botão só funciona no servidor.",
                     ephemeral=True
                 )
                 return
 
-            fila = obter_fila(interaction.guild.id)
+            fila = obter_fila(guild.id)
             membro_id = interaction.user.id
 
             if any(j["id"] == membro_id for j in fila):
@@ -839,11 +794,7 @@ class FilaView(discord.ui.View):
                         ephemeral=True
                     )
             except Exception as erro_resposta:
-                print(
-                    f"[ERRO AO RESPONDER] "
-                    f"{type(erro_resposta).__name__}: "
-                    f"{erro_resposta!r}"
-                )
+                print(f"[ERRO AO RESPONDER] {erro_resposta!r}")
 
     @discord.ui.button(
         label="SAIR DA FILA",
@@ -952,7 +903,8 @@ async def ajuda(ctx):
         "`!ping` — testa o bot\n"
         "`!sentinela` — mensagem da guilda\n"
         "`!ajuda` — mostra os comandos\n"
-        "`!fila` — publica a fila da Guerra de Guilda"
+        "`!fila` — publica a fila da Guerra de Guilda\n"
+        "`!listaremojis` — lista os emojis do servidor"
     )
 
 
@@ -986,6 +938,26 @@ async def fila_error(ctx, error):
         print(f"[ERRO COMANDO FILA] {error!r}")
 
 
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def listaremojis(ctx):
+    linhas = [
+        f"{emoji} — `{emoji.id}`"
+        for emoji in ctx.guild.emojis
+    ]
+
+    if not linhas:
+        await ctx.send(
+            "Não encontrei emojis personalizados neste servidor."
+        )
+        return
+
+    texto = "\n".join(linhas)
+
+    for inicio in range(0, len(texto), 1800):
+        await ctx.send(texto[inicio:inicio + 1800])
+
+
 # ==========================================
 # EVENTOS DE MEMBROS
 # ==========================================
@@ -1002,26 +974,29 @@ async def on_member_update(before, after):
         name=CARGO_MEMBRO
     )
 
-    recebeu_cargo_recruta = (
+    recebeu_recruta = (
         cargo_recruta is not None
         and cargo_recruta not in before.roles
         and cargo_recruta in after.roles
     )
 
-    recebeu_cargo_membro = (
+    recebeu_membro = (
         cargo_membro is not None
         and cargo_membro not in before.roles
         and cargo_membro in after.roles
     )
 
-    if recebeu_cargo_recruta:
+    # Cria canal quando o cargo de recrutado é atribuído
+    if recebeu_recruta:
         categoria = after.guild.get_channel(
             CATEGORIA_RECRUTAMENTO_ID
         )
 
         permissoes = {
             after.guild.default_role:
-                discord.PermissionOverwrite(view_channel=False),
+                discord.PermissionOverwrite(
+                    view_channel=False
+                ),
             after:
                 discord.PermissionOverwrite(
                     view_channel=True,
@@ -1074,12 +1049,14 @@ async def on_member_update(before, after):
             print(f"[RECRUTAMENTO] Canal criado para {after}.")
 
         except discord.Forbidden:
-            print("[RECRUTAMENTO] Sem permissão para criar canal.")
-
+            print(
+                "[RECRUTAMENTO] Sem permissão para criar canal."
+            )
         except discord.HTTPException as erro:
             print(f"[ERRO CRIAR RECRUTAMENTO] {erro}")
 
-    if recebeu_cargo_membro:
+    # Mensagem de boas-vindas ao receber o cargo de membro
+    if recebeu_membro:
         canal_boas_vindas = after.guild.get_channel(
             CANAL_BOAS_VINDAS_ID
         )
@@ -1124,42 +1101,17 @@ async def on_member_update(before, after):
 # INICIALIZACAO
 # ==========================================
 
-
 @bot.event
 async def on_ready():
     print(f"🦁 Sentinela conectado como {bot.user}")
-
-    ids_testar = {
-        1558574781308084375,
-        1558574948392374303,
-        1558575072996753551,
-        1558575102856269985,
-        1558575138759381033,
-    }
-
-    encontrados = set()
-
-    for guild in bot.guilds:
-        print(f"[EMOJIS] Servidor: {guild.name} | ID: {guild.id}")
-
-        for emoji in guild.emojis:
-            if emoji.id in ids_testar:
-                encontrados.add(emoji.id)
-                print(
-                    f"[EMOJI ENCONTRADO] "
-                    f"Nome={emoji.name} | ID={emoji.id} "
-                    f"| Disponível={emoji.available}"
-                )
-
-    for emoji_id in sorted(ids_testar - encontrados):
-        print(f"[EMOJI NAO ENCONTRADO NOS SERVIDORES DO BOT] {emoji_id}")
-
-    print("[SENTINELA] Verificação de emojis concluída.")
+    print("[SENTINELA] Bot pronto para receber interações.")
 
 
 async def main():
     if not TOKEN:
-        print("ERRO: defina a variável de ambiente DISCORD_TOKEN.")
+        print(
+            "ERRO: defina a variável de ambiente DISCORD_TOKEN."
+        )
         return
 
     async with bot:
