@@ -774,14 +774,15 @@ class FilaView(discord.ui.View):
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_entrar_fila"
     )
-    async def entrar(self, interaction, button):
+    async def entrar(self, interaction: discord.Interaction,
+                     button: discord.ui.Button):
         print(
             f"[FILA] Clique de {interaction.user} "
             f"(ID {interaction.user.id})"
         )
 
         try:
-            # Reconhece o clique imediatamente.
+            # Reconhece a interação imediatamente.
             await interaction.response.defer(
                 ephemeral=True,
                 thinking=True
@@ -791,7 +792,7 @@ class FilaView(discord.ui.View):
 
             if guild is None:
                 await interaction.edit_original_response(
-                    content="Não consegui identificar o servidor.",
+                    content="❌ Esse botão só funciona no servidor.",
                     view=None
                 )
                 return
@@ -813,15 +814,16 @@ class FilaView(discord.ui.View):
                 )
                 return
 
+            # Abre o menu de funções na resposta privada.
             await interaction.edit_original_response(
                 content=(
-                    "**ESCOLHA SUA FUNÇÃO**\n"
+                    "**🎮 ESCOLHA SUA FUNÇÃO**\n"
                     "Selecione sua função para a Guerra de Guilda:"
                 ),
                 view=EscolherFuncaoView()
             )
 
-            print("[FILA] Menu de funções aberto com sucesso.")
+            print("[FILA] Seleção de função aberta com sucesso.")
 
         except Exception as erro:
             print(
@@ -832,16 +834,23 @@ class FilaView(discord.ui.View):
             try:
                 if interaction.response.is_done():
                     await interaction.edit_original_response(
-                        content="❌ Erro ao abrir a seleção de função.",
+                        content=(
+                            "❌ Não consegui abrir a seleção de função. "
+                            "Tente novamente."
+                        ),
                         view=None
                     )
                 else:
                     await interaction.response.send_message(
-                        "❌ Erro ao abrir a seleção de função.",
+                        "❌ Não consegui abrir a seleção de função. "
+                        "Tente novamente.",
                         ephemeral=True
                     )
             except Exception as erro_resposta:
-                print(f"[ERRO RESPOSTA ENTRAR] {erro_resposta}")
+                print(
+                    f"[ERRO AO RESPONDER CLIQUE] "
+                    f"{type(erro_resposta).__name__}: {erro_resposta}"
+                )
 
     @discord.ui.button(
         label="SAIR DA FILA",
@@ -849,9 +858,9 @@ class FilaView(discord.ui.View):
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_sair_fila"
     )
-    async def sair(self, interaction, button):
+    async def sair(self, interaction: discord.Interaction,
+                   button: discord.ui.Button):
         try:
-            # Responde primeiro para evitar timeout.
             await interaction.response.defer(
                 ephemeral=True,
                 thinking=True
@@ -861,7 +870,7 @@ class FilaView(discord.ui.View):
 
             if guild is None:
                 await interaction.edit_original_response(
-                    content="Não consegui identificar o servidor.",
+                    content="❌ Não consegui identificar o servidor.",
                     view=None
                 )
                 return
@@ -879,7 +888,7 @@ class FilaView(discord.ui.View):
 
             if indice is None:
                 await interaction.edit_original_response(
-                    content="Você não está na fila.",
+                    content="⚠️ Você não está na fila.",
                     view=None
                 )
                 return
@@ -897,7 +906,9 @@ class FilaView(discord.ui.View):
                             reason="Um jogador saiu da fila."
                         )
                     except discord.HTTPException as erro:
-                        print(f"Erro ao excluir canal do squad: {erro}")
+                        print(
+                            f"[ERRO EXCLUIR SQUAD] {erro}"
+                        )
 
             await atualizar_mensagem_fila(guild)
 
@@ -914,11 +925,13 @@ class FilaView(discord.ui.View):
 
             try:
                 await interaction.edit_original_response(
-                    content="❌ Erro ao sair da fila.",
+                    content="❌ Ocorreu um erro ao sair da fila.",
                     view=None
                 )
             except Exception as erro_resposta:
-                print(f"[ERRO RESPOSTA SAIR] {erro_resposta}")
+                print(
+                    f"[ERRO RESPOSTA SAIR] {erro_resposta}"
+                )
 
 
 # ==========================================
