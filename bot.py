@@ -28,27 +28,48 @@ IMAGEM_BOAS_VINDAS = (
     "cfa8acf9d3323076c8f1a4c5071a36c6.jpg"
 )
 
-# Emojis personalizados da fila
+# ==========================================
+# EMOJIS PERSONALIZADOS
+# ==========================================
+
 EMOJI_SQUAD = discord.PartialEmoji(
     name="squad_ff",
     id=1557929631972327426
 )
 
 EMOJI_ENTRAR = discord.PartialEmoji(
-    name="squad_ff",
+    name="ump_roxa",
     id=1557943886230454332
 )
 
 EMOJI_SENTINELA_URL = (
-    "https://cdn.discordapp.com/emojis/1557941358990200852.png"
+    "https://cdn.discordapp.com/emojis/1557941358990200852.webp"
 )
 
-# Emojis comuns para evitar o erro Invalid emoji
-EMOJI_RUSHADOR = "⚡"
-EMOJI_ATIRADOR = "🎯"
-EMOJI_FUZILEIRO = "🔫"
-EMOJI_GRANADEIRO = "💣"
-EMOJI_SUPORTE = "🛡️"
+EMOJI_RUSHADOR = discord.PartialEmoji(
+    name="rush",
+    id=1558310698944172114
+)
+
+EMOJI_ATIRADOR = discord.PartialEmoji(
+    name="atirador",
+    id=1558310549022973973
+)
+
+EMOJI_FUZILEIRO = discord.PartialEmoji(
+    name="fuzileiro",
+    id=1558310653251297344
+)
+
+EMOJI_GRANADEIRO = discord.PartialEmoji(
+    name="granadeiro",
+    id=1558310498905227274
+)
+
+EMOJI_SUPORTE = discord.PartialEmoji(
+    name="suporte",
+    id=1558310434950610994
+)
 
 # ==========================================
 # DISCORD
@@ -670,57 +691,57 @@ class EscolherFuncaoView(discord.ui.View):
 
     @discord.ui.button(
         label="Rushador",
-        emoji="⚡",
+        emoji=EMOJI_RUSHADOR,
         style=discord.ButtonStyle.secondary,
         row=0
     )
     async def rushador(self, interaction, button):
         await registrar_jogador(
-            interaction, "Rushador", "⚡"
+            interaction, "Rushador", EMOJI_RUSHADOR
         )
 
     @discord.ui.button(
         label="Fuzileiro",
-        emoji="🔫",
+        emoji=EMOJI_FUZILEIRO,
         style=discord.ButtonStyle.secondary,
         row=0
     )
     async def fuzileiro(self, interaction, button):
         await registrar_jogador(
-            interaction, "Fuzileiro", "🔫"
+            interaction, "Fuzileiro", EMOJI_FUZILEIRO
         )
 
     @discord.ui.button(
         label="Atirador",
-        emoji="🎯",
+        emoji=EMOJI_ATIRADOR,
         style=discord.ButtonStyle.secondary,
         row=1
     )
     async def atirador(self, interaction, button):
         await registrar_jogador(
-            interaction, "Atirador", "🎯"
+            interaction, "Atirador", EMOJI_ATIRADOR
         )
 
     @discord.ui.button(
         label="Suporte",
-        emoji="🛡️",
+        emoji=EMOJI_SUPORTE,
         style=discord.ButtonStyle.secondary,
         row=1
     )
     async def suporte(self, interaction, button):
         await registrar_jogador(
-            interaction, "Suporte", "🛡️"
+            interaction, "Suporte", EMOJI_SUPORTE
         )
 
     @discord.ui.button(
         label="Granadeiro",
-        emoji="💣",
+        emoji=EMOJI_GRANADEIRO,
         style=discord.ButtonStyle.secondary,
         row=1
     )
     async def granadeiro(self, interaction, button):
         await registrar_jogador(
-            interaction, "Granadeiro", "💣"
+            interaction, "Granadeiro", EMOJI_GRANADEIRO
         )
 
 
@@ -986,7 +1007,6 @@ async def on_member_update(before, after):
         and cargo_membro in after.roles
     )
 
-    # Cria canal quando o cargo de recrutado é atribuído
     if recebeu_recruta:
         categoria = after.guild.get_channel(
             CATEGORIA_RECRUTAMENTO_ID
@@ -1055,7 +1075,6 @@ async def on_member_update(before, after):
         except discord.HTTPException as erro:
             print(f"[ERRO CRIAR RECRUTAMENTO] {erro}")
 
-    # Mensagem de boas-vindas ao receber o cargo de membro
     if recebeu_membro:
         canal_boas_vindas = after.guild.get_channel(
             CANAL_BOAS_VINDAS_ID
