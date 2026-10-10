@@ -40,10 +40,8 @@ EMOJI_ENTRAR = discord.PartialEmoji(
     id=1557943886230454332
 )
 
-EMOJI_APROVAR = discord.PartialEmoji(
-    name="emoji_aprovar",
-    id=1558331820985163817
-)
+# Emoji comum para aprovação do recrutamento
+EMOJI_APROVAR = "✅"
 
 EMOJI_SENTINELA_URL = (
     "https://cdn.discordapp.com/emojis/"
@@ -276,20 +274,12 @@ class ConfirmarRecusaView(discord.ui.View):
 
 class RecrutamentoView(discord.ui.View):
 
-    def __init__(self, usar_emoji=True):
+    def __init__(self):
         super().__init__(timeout=None)
-
-        if not usar_emoji:
-            for item in self.children:
-                if (
-                    isinstance(item, discord.ui.Button)
-                    and item.custom_id == "sentinela_aprovar_recrutamento"
-                ):
-                    item.emoji = None
 
     @discord.ui.button(
         label="Aprovar",
-        emoji=EMOJI_APROVAR,
+        emoji="✅",
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_aprovar_recrutamento"
     )
@@ -506,19 +496,12 @@ async def garantir_mensagem_recrutamento(canal, membro):
         if mensagem_recrutamento is None:
             mensagem_recrutamento = await canal.send(embed=embed)
 
-        try:
-            await mensagem_recrutamento.edit(
-                view=RecrutamentoView()
-            )
-            print("[RECRUTAMENTO] Botões enviados com emoji.")
+        # Os botões usam emojis comuns; não precisa de fallback.
+        await mensagem_recrutamento.edit(
+            view=RecrutamentoView()
+        )
 
-        except (discord.HTTPException, ValueError, TypeError) as erro:
-            print(f"[RECRUTAMENTO] Tentando botões sem emoji: {erro}")
-
-            await mensagem_recrutamento.edit(
-                view=RecrutamentoView(usar_emoji=False)
-            )
-            print("[RECRUTAMENTO] Botões enviados sem emoji personalizado.")
+        print("[RECRUTAMENTO] Mensagem e botões carregados.")
 
     except discord.Forbidden:
         print(
@@ -530,7 +513,7 @@ async def garantir_mensagem_recrutamento(canal, membro):
 
 
 # ========================================
-# EMBED DA FILA
+# EMBED DA FILA — MANTIDO COMO ESTAVA
 # ========================================
 
 def criar_embed_fila(guild_id):
@@ -570,7 +553,7 @@ def criar_embed_fila(guild_id):
 
 
 # ========================================
-# CANAL PRIVADO DO SQUAD
+# CANAL PRIVADO DO SQUAD — MANTIDO
 # ========================================
 
 async def criar_canal_squad(guild, jogadores, categoria=None):
@@ -625,7 +608,7 @@ async def criar_canal_squad(guild, jogadores, categoria=None):
 
 
 # ========================================
-# BOTÕES DA FILA
+# BOTÕES DA FILA — MANTIDOS
 # ========================================
 
 class FilaView(discord.ui.View):
@@ -758,7 +741,7 @@ class FilaView(discord.ui.View):
 
 
 # ========================================
-# COMANDOS
+# COMANDOS — MANTIDOS
 # ========================================
 
 @bot.command(name="fila")
@@ -853,7 +836,6 @@ async def on_member_update(before, after):
         name=CARGO_MEMBRO
     )
 
-    # Alguém recebeu o cargo de recruta.
     recebeu_recruta = (
         cargo_recruta is not None
         and cargo_recruta.id not in cargos_antes
@@ -955,7 +937,6 @@ async def on_member_update(before, after):
             else:
                 await garantir_mensagem_recrutamento(canal, after)
 
-    # Alguém recebeu o cargo de Sentinela.
     recebeu_cargo_membro = (
         cargo_membro is not None
         and cargo_membro.id not in cargos_antes
@@ -995,7 +976,7 @@ async def on_member_update(before, after):
             except discord.Forbidden:
                 print("[BOAS-VINDAS] Sem permissão para enviar mensagem.")
             except discord.HTTPException as erro:
-                print(f"[BOAS-VINDAS] Erro ao enviar mensagem: {erro}")
+                print(f"[BOAS-VINDAS] Erro ao enviar boas-vindas: {erro}")
 
     if cargo_recruta is None:
         print(f"[CONFIG] Cargo não encontrado: {CARGO_RECRUTA}")
