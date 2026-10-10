@@ -498,19 +498,32 @@ def criar_embed_fila(guild_id):
     )
 
     if fila:
-        texto = "\n".join(
-            f"**{numero}.** <@{jogador['id']}> "
-            f"{jogador['emoji']}"
-            for numero, jogador in enumerate(fila, start=1)
-        )
-    else:
-        texto = "A fila está vazia. Entre e forme seu squad!"
+        # Cada jogador ocupa uma coluna.
+        # Os jogadores 1 e 2 ficam na primeira linha;
+        # os jogadores 3 e 4 ficam na segunda linha.
+        for indice, jogador in enumerate(fila):
+            embed.add_field(
+                name=f"**{indice + 1}.**",
+                value=(
+                    f"<@{jogador['id']}>\n"
+                    f"{jogador['emoji']} **{jogador['funcao']}**"
+                ),
+                inline=True
+            )
 
-    embed.add_field(
-        name="\u200b",
-        value=texto,
-        inline=False
-    )
+            # Depois de cada dupla, força uma nova linha.
+            if indice % 2 == 1:
+                embed.add_field(
+                    name="\u200b",
+                    value="\u200b",
+                    inline=False
+                )
+    else:
+        embed.add_field(
+            name="\u200b",
+            value="A fila está vazia. Entre e forme seu squad!",
+            inline=False
+        )
 
     embed.set_footer(text="SENTINELA • GUERRA DE GUILDA")
     embed.set_thumbnail(url=EMOJI_SENTINELA_URL)
