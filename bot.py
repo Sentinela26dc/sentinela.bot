@@ -71,12 +71,15 @@ def obter_fila(guild_id):
 
 
 def eh_recrutador(membro):
+    if not isinstance(membro, discord.Member):
+        return False
+
     if membro.guild_permissions.administrator:
         return True
 
     cargos_autorizados = {
-        CARGO_MODERADOR_ID,
-        CARGO_ADM_ID
+        1556441469978411032,
+        1556530332281344082
     }
 
     return any(
@@ -121,7 +124,7 @@ async def excluir_canal_recrutamento(canal):
 
 
 # ==========================================
-# RECRUTAMENTO: RECUSA
+# RECUSA: CONFIRMAR OU CANCELAR
 # ==========================================
 
 class ConfirmarRecusaView(discord.ui.View):
@@ -130,14 +133,10 @@ class ConfirmarRecusaView(discord.ui.View):
 
     @discord.ui.button(
         label="Confirmar recusa",
-        style=discord.ButtonStyle.danger,
+        style=discord.ButtonStyle.secondary,
         custom_id="sentinela_confirmar_recusa"
     )
-    async def confirmar(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
+    async def confirmar(self, interaction, button):
         if not eh_recrutador(interaction.user):
             await interaction.response.send_message(
                 "❌ Você não tem permissão para fazer isso.",
@@ -148,6 +147,10 @@ class ConfirmarRecusaView(discord.ui.View):
         canal = interaction.channel
 
         if not isinstance(canal, discord.TextChannel):
+            await interaction.response.send_message(
+                "Não consegui identificar o canal.",
+                ephemeral=True
+            )
             return
 
         if recrutamento_encerrado(canal):
@@ -168,30 +171,32 @@ class ConfirmarRecusaView(discord.ui.View):
 
         membro = interaction.guild.get_member(recrutado_id)
 
-        if membro:
-            cargo_recruta = discord.utils.get(
-                interaction.guild.roles,
-                name=CARGO_RECRUTA
-            )
+        cargo_recruta = discord.utils.get(
+            interaction.guild.roles,
+            name=CARGO_RECRUTA
+        )
 
-            if cargo_recruta and cargo_recruta in membro.roles:
-                try:
-                    await membro.remove_roles(
-                        cargo_recruta,
-                        reason="Recrutamento recusado."
-                    )
-                except discord.Forbidden:
-                    pass
-
-        try:
-            await canal.edit(
-                topic=(
-                    f"recrutamento_usuario:{recrutado_id} "
-                    "STATUS: RECUSADO"
+        if membro and cargo_recruta:
+            try:
+                await membro.remove_roles(
+                    cargo_recruta,
+                    reason="Recrutamento recusado."
                 )
+            except discord.Forbidden:
+                await interaction.response.send_message(
+                    "Não consegui remover o cargo de recruta. "
+                    "Confira a permissão Gerenciar cargos "
+                    "e a hierarquia do bot.",
+                    ephemeral=True
+                )
+                return
+
+        await canal.edit(
+            topic=(
+                f"recrutamento_usuario:{recrutado_id} "
+                "STATUS: RECUSADO"
             )
-        except discord.Forbidden:
-            pass
+        )
 
         await interaction.response.edit_message(
             content="❌ **RECRUTAMENTO RECUSADO.**",
@@ -210,11 +215,7 @@ class ConfirmarRecusaView(discord.ui.View):
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_cancelar_recusa"
     )
-    async def cancelar(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
+    async def cancelar(self, interaction, button):
         await interaction.response.edit_message(
             content="Recusa cancelada.",
             view=None
@@ -232,17 +233,25 @@ class RecrutamentoView(discord.ui.View):
     @discord.ui.button(
         label="Aprovar",
         emoji="✅",
-        style=discord.ButtonStyle.success,
+        style=discord.ButtonStyle.secondary,
         custom_id="sentinela_aprovar_recrutamento"
     )
-    async def aprovar(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
+    async def aprovar(self, interaction, button):
         if not eh_recrutador(interaction.user):
+            cargos_usuario = [
+                str(cargo.id)
+                for cargo in interaction.user.roles
+            ]
+
+            print(
+                f"Permissão negada para {interaction.user} "
+                f"(ID {interaction.user.id}). "
+                f"Cargos encontrados: {cargos_usuario}"
+            )
+
             await interaction.response.send_message(
-                "❌ Você não tem permissão para aprovar recrutados.",
+                "❌ Não reconheci seus cargos de Adm/Moderador. "
+                "Confira os IDs configurados no bot.",
                 ephemeral=True
             )
             return
@@ -250,6 +259,10 @@ class RecrutamentoView(discord.ui.View):
         canal = interaction.channel
 
         if not isinstance(canal, discord.TextChannel):
+            await interaction.response.send_message(
+                "Não consegui identificar o canal.",
+                ephemeral=True
+            )
             return
 
         if recrutamento_encerrado(canal):
@@ -263,7 +276,8 @@ class RecrutamentoView(discord.ui.View):
 
         if recrutado_id is None:
             await interaction.response.send_message(
-                "Não consegui identificar o recrutado.",
+                "Não consegui identificar o recrutado. "
+                "Confira o tópico do canal.",
                 ephemeral=True
             )
             return
@@ -289,16 +303,18 @@ class RecrutamentoView(discord.ui.View):
 
         if cargo_membro is None:
             await interaction.response.send_message(
-                f"Não encontrei o cargo `{CARGO_MEMBRO}`.",
+                f"Não encontrei o cargo `{CARGO_MEMBRO}`. "
+                "Confira se o nome está exatamente igual.",
                 ephemeral=True
             )
             return
 
         try:
-            await membro.add_roles(
-                cargo_membro,
-                reason="Recrutamento aprovado."
-            )
+            if cargo_membro not in membro.roles:
+                await membro.add_roles(
+                    cargo_membro,
+                    reason="Recrutamento aprovado."
+                )
 
             if cargo_recruta and cargo_recruta in membro.roles:
                 await membro.remove_roles(
@@ -308,8 +324,10 @@ class RecrutamentoView(discord.ui.View):
 
         except discord.Forbidden:
             await interaction.response.send_message(
-                "Não consegui alterar os cargos. "
-                "Verifique as permissões e a posição do cargo do bot.",
+                "Não consegui alterar os cargos. No Discord, "
+                "ative Gerenciar cargos para o bot e coloque "
+                "o cargo do bot acima dos cargos de recruta "
+                "e Sentinela.",
                 ephemeral=True
             )
             return
@@ -322,7 +340,7 @@ class RecrutamentoView(discord.ui.View):
                 )
             )
         except discord.Forbidden:
-            pass
+            print("Aviso: não consegui atualizar o tópico do canal.")
 
         await interaction.response.edit_message(
             content=f"✅ **{membro.mention} FOI APROVADO!**",
@@ -339,14 +357,10 @@ class RecrutamentoView(discord.ui.View):
     @discord.ui.button(
         label="Recusar",
         emoji="❌",
-        style=discord.ButtonStyle.danger,
+        style=discord.ButtonStyle.secondary,
         custom_id="sentinela_recusar_recrutamento"
     )
-    async def recusar(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
+    async def recusar(self, interaction, button):
         if not eh_recrutador(interaction.user):
             await interaction.response.send_message(
                 "❌ Você não tem permissão para recusar recrutados.",
@@ -357,6 +371,10 @@ class RecrutamentoView(discord.ui.View):
         canal = interaction.channel
 
         if not isinstance(canal, discord.TextChannel):
+            await interaction.response.send_message(
+                "Não consegui identificar o canal.",
+                ephemeral=True
+            )
             return
 
         if recrutamento_encerrado(canal):
@@ -395,9 +413,7 @@ async def garantir_mensagem_recrutamento(canal, membro):
         color=discord.Color.gold()
     )
 
-    embed.set_footer(
-        text="SENTINELA • RECRUTAMENTO"
-    )
+    embed.set_footer(text="SENTINELA • RECRUTAMENTO")
 
     moderador = canal.guild.get_role(CARGO_MODERADOR_ID)
     adm = canal.guild.get_role(CARGO_ADM_ID)
@@ -408,7 +424,6 @@ async def garantir_mensagem_recrutamento(canal, membro):
         if cargo is not None
     )
 
-    # Se já existir uma mensagem do bot, atualiza.
     async for mensagem in canal.history(limit=20):
         if mensagem.author == bot.user and mensagem.embeds:
             await mensagem.edit(
@@ -422,7 +437,6 @@ async def garantir_mensagem_recrutamento(canal, membro):
             )
             return
 
-    # Mensagem nova com menção aos cargos.
     await canal.send(
         content=mencoes_equipe or None,
         embed=embed,
@@ -469,21 +483,18 @@ def criar_embed_fila(guild_id):
         inline=False
     )
 
-    embed.set_footer(
-        text="SENTINELA • GUERRA DE GUILDA"
-    )
-
+    embed.set_footer(text="SENTINELA • GUERRA DE GUILDA")
     embed.set_thumbnail(url=EMOJI_SENTINELA_URL)
 
     return embed
 
 
 async def criar_canal_squad(guild, fila):
-    categoria = None
-
     canal_anterior_id = canais_squad.get(guild.id)
+
     if canal_anterior_id:
         canal_anterior = guild.get_channel(canal_anterior_id)
+
         if canal_anterior:
             try:
                 await canal_anterior.delete(
@@ -500,6 +511,7 @@ async def criar_canal_squad(guild, fila):
 
     for membro_id in fila:
         membro = guild.get_member(membro_id)
+
         if membro:
             permissoes[membro] = discord.PermissionOverwrite(
                 view_channel=True,
@@ -509,6 +521,7 @@ async def criar_canal_squad(guild, fila):
 
     for cargo_id in (CARGO_MODERADOR_ID, CARGO_ADM_ID):
         cargo = guild.get_role(cargo_id)
+
         if cargo:
             permissoes[cargo] = discord.PermissionOverwrite(
                 view_channel=True,
@@ -516,9 +529,8 @@ async def criar_canal_squad(guild, fila):
                 read_message_history=True
             )
 
-    bot_membro = guild.me
-    if bot_membro:
-        permissoes[bot_membro] = discord.PermissionOverwrite(
+    if guild.me:
+        permissoes[guild.me] = discord.PermissionOverwrite(
             view_channel=True,
             send_messages=True,
             read_message_history=True,
@@ -554,14 +566,10 @@ class FilaView(discord.ui.View):
     @discord.ui.button(
         label="ENTRAR NA FILA",
         emoji=EMOJI_ENTRAR,
-        style=discord.ButtonStyle.primary,
+        style=discord.ButtonStyle.secondary,
         custom_id="sentinela_entrar_fila"
     )
-    async def entrar(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
+    async def entrar(self, interaction, button):
         guild = interaction.guild
 
         if guild is None:
@@ -593,14 +601,11 @@ class FilaView(discord.ui.View):
 
         if len(fila) == LIMITE_FILA:
             try:
-                canal = await criar_canal_squad(guild, list(fila))
-                await canal.send(
-                    "A fila foi fechada porque o squad está completo."
-                )
+                await criar_canal_squad(guild, list(fila))
             except discord.Forbidden:
                 await interaction.followup.send(
                     "Não consegui criar o canal privado. "
-                    "Verifique se o bot pode gerenciar canais.",
+                    "Confira se o bot tem Gerenciar canais.",
                     ephemeral=True
                 )
 
@@ -610,11 +615,7 @@ class FilaView(discord.ui.View):
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_sair_fila"
     )
-    async def sair(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
+    async def sair(self, interaction, button):
         guild = interaction.guild
 
         if guild is None:
@@ -632,12 +633,11 @@ class FilaView(discord.ui.View):
 
         fila.remove(membro_id)
 
-        # Se um jogador sair de um squad completo,
-        # o canal privado daquele squad será excluído.
         canal_id = canais_squad.pop(guild.id, None)
 
         if canal_id:
             canal = guild.get_channel(canal_id)
+
             if canal:
                 try:
                     await canal.delete(
@@ -728,7 +728,6 @@ async def on_member_update(before, after):
         and cargo_membro in after.roles
     )
 
-    # Cria canal privado quando alguém recebe o cargo de recruta.
     if recebeu_cargo_recruta:
         categoria = after.guild.get_channel(
             CATEGORIA_RECRUTAMENTO_ID
@@ -796,7 +795,6 @@ async def on_member_update(before, after):
                 "Sem permissão para criar o canal de recrutamento."
             )
 
-    # Mensagem de boas-vindas quando recebe o cargo de membro.
     if recebeu_cargo_membro:
         canal_boas_vindas = after.guild.get_channel(
             CANAL_BOAS_VINDAS_ID
