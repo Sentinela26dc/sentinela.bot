@@ -1124,10 +1124,37 @@ async def on_member_update(before, after):
 # INICIALIZACAO
 # ==========================================
 
+
 @bot.event
 async def on_ready():
     print(f"🦁 Sentinela conectado como {bot.user}")
-    print("[SENTINELA] Bot pronto para receber interações.")
+
+    ids_testar = {
+        1558574781308084375,
+        1558574948392374303,
+        1558575072996753551,
+        1558575102856269985,
+        1558575138759381033,
+    }
+
+    encontrados = set()
+
+    for guild in bot.guilds:
+        print(f"[EMOJIS] Servidor: {guild.name} | ID: {guild.id}")
+
+        for emoji in guild.emojis:
+            if emoji.id in ids_testar:
+                encontrados.add(emoji.id)
+                print(
+                    f"[EMOJI ENCONTRADO] "
+                    f"Nome={emoji.name} | ID={emoji.id} "
+                    f"| Disponível={emoji.available}"
+                )
+
+    for emoji_id in sorted(ids_testar - encontrados):
+        print(f"[EMOJI NAO ENCONTRADO NOS SERVIDORES DO BOT] {emoji_id}")
+
+    print("[SENTINELA] Verificação de emojis concluída.")
 
 
 async def main():
