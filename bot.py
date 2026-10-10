@@ -46,30 +46,26 @@ EMOJI_SENTINELA_URL = (
 # EMOJIS PERSONALIZADOS
 # ==========================================
 
-EMOJI_RUSHADOR = discord.PartialEmoji(
-    name="rush",
-    id=1558310751351873558
+EMOJI_RUSHADOR = discord.PartialEmoji.from_str(
+    "<:rush:1558310751351873558>"
 )
 
-EMOJI_ATIRADOR = discord.PartialEmoji(
-    name="atirador",
-    id=1558310814996234291
+EMOJI_ATIRADOR = discord.PartialEmoji.from_str(
+    "<:atirador:1558310814996234291>"
 )
 
-EMOJI_GRANADEIRO = discord.PartialEmoji(
-    name="granadeiro",
-    id=1558310948350070917
+EMOJI_GRANADEIRO = discord.PartialEmoji.from_str(
+    "<:granadeiro:1558310948350070917>"
 )
 
-EMOJI_SUPORTE = discord.PartialEmoji(
-    name="suporte",
-    id=1558310989148196925
+EMOJI_SUPORTE = discord.PartialEmoji.from_str(
+    "<:suporte:1558310989148196925>"
 )
 
-EMOJI_FUZILEIRO = discord.PartialEmoji(
-    name="fuzileiro",
-    id=1558311017677856771
+EMOJI_FUZILEIRO = discord.PartialEmoji.from_str(
+    "<:fuzileiro:1558311017677856771>"
 )
+
 
 # ==========================================
 # DISCORD
