@@ -1,4 +1,3 @@
-
 import os
 import asyncio
 import discord
@@ -42,6 +41,31 @@ EMOJI_SENTINELA_URL = (
     "https://cdn.discordapp.com/emojis/1557941358990200852.png"
 )
 
+# Emojis personalizados das funções
+EMOJI_RUSHADOR = discord.PartialEmoji(
+    name="rushador",
+    id=1558310751351873558
+)
+
+EMOJI_FUZILEIRO = discord.PartialEmoji(
+    name="fuzileiro",
+    id=1558558601969270925
+)
+
+EMOJI_SUPORTE = discord.PartialEmoji(
+    name="suporte",
+    id=1558310989148196925
+)
+
+EMOJI_GRANADEIRO = discord.PartialEmoji(
+    name="granadeiro",
+    id=1558310948350070917
+)
+
+# Falta o ID do emoji personalizado de Atirador
+EMOJI_ATIRADOR = "🎯"
+
+
 # ==========================================
 # DISCORD
 # ==========================================
@@ -55,6 +79,7 @@ bot = commands.Bot(
     intents=intents
 )
 
+# Cada jogador fica registrado com ID e função escolhida
 filas = {}
 canais_squad = {}
 mensagens_fila = {}
@@ -78,8 +103,8 @@ def eh_recrutador(membro):
         return True
 
     cargos_autorizados = {
-        1556441469978411032,
-        1556530332281344082
+        CARGO_ADM_ID,
+        CARGO_MODERADOR_ID
     }
 
     return any(
@@ -116,9 +141,7 @@ async def excluir_canal_recrutamento(canal):
     await asyncio.sleep(TEMPO_EXCLUSAO_CANAL)
 
     try:
-        await canal.delete(
-            reason="Recrutamento encerrado."
-        )
+        await canal.delete(reason="Recrutamento encerrado.")
     except (discord.NotFound, discord.Forbidden):
         pass
 
@@ -191,12 +214,15 @@ class ConfirmarRecusaView(discord.ui.View):
                 )
                 return
 
-        await canal.edit(
-            topic=(
-                f"recrutamento_usuario:{recrutado_id} "
-                "STATUS: RECUSADO"
+        try:
+            await canal.edit(
+                topic=(
+                    f"recrutamento_usuario:{recrutado_id} "
+                    "STATUS: RECUSADO"
+                )
             )
-        )
+        except discord.HTTPException:
+            pass
 
         await interaction.response.edit_message(
             content="❌ **RECRUTAMENTO RECUSADO.**",
@@ -324,10 +350,9 @@ class RecrutamentoView(discord.ui.View):
 
         except discord.Forbidden:
             await interaction.response.send_message(
-                "Não consegui alterar os cargos. No Discord, "
-                "ative Gerenciar cargos para o bot e coloque "
-                "o cargo do bot acima dos cargos de recruta "
-                "e Sentinela.",
+                "Não consegui alterar os cargos. Confira "
+                "Gerenciar cargos e coloque o cargo do bot "
+                "acima dos cargos de recruta e Sentinela.",
                 ephemeral=True
             )
             return
@@ -339,8 +364,8 @@ class RecrutamentoView(discord.ui.View):
                     "STATUS: APROVADO"
                 )
             )
-        except discord.Forbidden:
-            print("Aviso: não consegui atualizar o tópico do canal.")
+        except discord.HTTPException:
+            pass
 
         await interaction.response.edit_message(
             content=f"✅ **{membro.mention} FOI APROVADO!**",
@@ -471,14 +496,15 @@ def criar_embed_fila(guild_id):
 
     if fila:
         jogadores = "\n".join(
-            f"**{i}.** <@{membro_id}>"
-            for i, membro_id in enumerate(fila, start=1)
+            f"**{i}.** <@{jogador['id']}> — "
+            f"**{jogador['funcao']}**"
+            for i, jogador in enumerate(fila, start=1)
         )
     else:
         jogadores = "A fila está vazia. Entre e forme seu squad!"
 
     embed.add_field(
-        name="👥 PARTICIPANTES",
+        name="👥 PARTICIPANTES • FUNÇÕES",
         value=jogadores,
         inline=False
     )
@@ -487,6 +513,28 @@ def criar_embed_fila(guild_id):
     embed.set_thumbnail(url=EMOJI_SENTINELA_URL)
 
     return embed
+
+
+async def atualizar_mensagem_fila(guild):
+    dados = mensagens_fila.get(guild.id)
+
+    if not dados:
+        return
+
+    canal_id, mensagem_id = dados
+    canal = guild.get_channel(canal_id)
+
+    if not isinstance(canal, discord.TextChannel):
+        return
+
+    try:
+        mensagem = await canal.fetch_message(mensagem_id)
+        await mensagem.edit(
+            embed=criar_embed_fila(guild.id),
+            view=FilaView()
+        )
+    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+        print("Não consegui atualizar a mensagem da fila.")
 
 
 async def criar_canal_squad(guild, fila):
@@ -509,8 +557,8 @@ async def criar_canal_squad(guild, fila):
         )
     }
 
-    for membro_id in fila:
-        membro = guild.get_member(membro_id)
+    for jogador in fila:
+        membro = guild.get_member(jogador["id"])
 
         if membro:
             permissoes[membro] = discord.PermissionOverwrite(
@@ -545,9 +593,9 @@ async def criar_canal_squad(guild, fila):
 
     canais_squad[guild.id] = canal.id
 
-    mencoes = " ".join(
-        f"<@{membro_id}>"
-        for membro_id in fila
+    mencoes = "\n".join(
+        f"<@{jogador['id']}> — **{jogador['funcao']}**"
+        for jogador in fila
     )
 
     await canal.send(
@@ -558,6 +606,117 @@ async def criar_canal_squad(guild, fila):
 
     return canal
 
+
+# ==========================================
+# ESCOLHA DA FUNÇÃO
+# ==========================================
+
+async def registrar_jogador(interaction, funcao):
+    guild = interaction.guild
+
+    if guild is None:
+        return
+
+    fila = obter_fila(guild.id)
+    membro_id = interaction.user.id
+
+    if any(jogador["id"] == membro_id for jogador in fila):
+        await interaction.response.edit_message(
+            content="Você já está na fila!",
+            view=None
+        )
+        return
+
+    if len(fila) >= LIMITE_FILA:
+        await interaction.response.edit_message(
+            content="A fila já está completa!",
+            view=None
+        )
+        return
+
+    fila.append({
+        "id": membro_id,
+        "funcao": funcao
+    })
+
+    await interaction.response.edit_message(
+        content=f"✅ Você entrou na fila como **{funcao}**!",
+        view=None
+    )
+
+    await atualizar_mensagem_fila(guild)
+
+    if len(fila) == LIMITE_FILA:
+        try:
+            await criar_canal_squad(guild, list(fila))
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "Não consegui criar o canal privado. "
+                "Confira se o bot tem Gerenciar canais.",
+                ephemeral=True
+            )
+
+
+class EscolherFuncaoView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+
+    # ORDEM: RUSHADOR, FUZILEIRO, ATIRADOR, SUPORTE, GRANADEIRO
+
+    @discord.ui.button(
+        label="Rushador",
+        emoji=EMOJI_RUSHADOR,
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_funcao_rushador",
+        row=0
+    )
+    async def rushador(self, interaction, button):
+        await registrar_jogador(interaction, "Rushador")
+
+    @discord.ui.button(
+        label="Fuzileiro",
+        emoji=EMOJI_FUZILEIRO,
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_funcao_fuzileiro",
+        row=0
+    )
+    async def fuzileiro(self, interaction, button):
+        await registrar_jogador(interaction, "Fuzileiro")
+
+    @discord.ui.button(
+        label="Atirador",
+        emoji=EMOJI_ATIRADOR,
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_funcao_atirador",
+        row=1
+    )
+    async def atirador(self, interaction, button):
+        await registrar_jogador(interaction, "Atirador")
+
+    @discord.ui.button(
+        label="Suporte",
+        emoji=EMOJI_SUPORTE,
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_funcao_suporte",
+        row=1
+    )
+    async def suporte(self, interaction, button):
+        await registrar_jogador(interaction, "Suporte")
+
+    @discord.ui.button(
+        label="Granadeiro",
+        emoji=EMOJI_GRANADEIRO,
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_funcao_granadeiro",
+        row=1
+    )
+    async def granadeiro(self, interaction, button):
+        await registrar_jogador(interaction, "Granadeiro")
+
+
+# ==========================================
+# BOTÕES DA FILA
+# ==========================================
 
 class FilaView(discord.ui.View):
     def __init__(self):
@@ -578,7 +737,7 @@ class FilaView(discord.ui.View):
         fila = obter_fila(guild.id)
         membro_id = interaction.user.id
 
-        if membro_id in fila:
+        if any(jogador["id"] == membro_id for jogador in fila):
             await interaction.response.send_message(
                 "Você já está na fila!",
                 ephemeral=True
@@ -592,22 +751,12 @@ class FilaView(discord.ui.View):
             )
             return
 
-        fila.append(membro_id)
-
-        await interaction.response.edit_message(
-            embed=criar_embed_fila(guild.id),
-            view=self
+        await interaction.response.send_message(
+            "**ESCOLHA SUA FUNÇÃO**\n"
+            "Selecione a função que você vai jogar na Guerra de Guilda:",
+            view=EscolherFuncaoView(),
+            ephemeral=True
         )
-
-        if len(fila) == LIMITE_FILA:
-            try:
-                await criar_canal_squad(guild, list(fila))
-            except discord.Forbidden:
-                await interaction.followup.send(
-                    "Não consegui criar o canal privado. "
-                    "Confira se o bot tem Gerenciar canais.",
-                    ephemeral=True
-                )
 
     @discord.ui.button(
         label="SAIR DA FILA",
@@ -624,14 +773,22 @@ class FilaView(discord.ui.View):
         fila = obter_fila(guild.id)
         membro_id = interaction.user.id
 
-        if membro_id not in fila:
+        indice = next(
+            (
+                i for i, jogador in enumerate(fila)
+                if jogador["id"] == membro_id
+            ),
+            None
+        )
+
+        if indice is None:
             await interaction.response.send_message(
                 "Você não está na fila.",
                 ephemeral=True
             )
             return
 
-        fila.remove(membro_id)
+        fila.pop(indice)
 
         canal_id = canais_squad.pop(guild.id, None)
 
@@ -688,7 +845,10 @@ async def fila(ctx):
         view=FilaView()
     )
 
-    mensagens_fila[ctx.guild.id] = mensagem.id
+    mensagens_fila[ctx.guild.id] = (
+        ctx.channel.id,
+        mensagem.id
+    )
 
 
 @fila.error
@@ -777,7 +937,10 @@ async def on_member_update(before, after):
                 name=nome_canal,
                 category=(
                     categoria
-                    if isinstance(categoria, discord.CategoryChannel)
+                    if isinstance(
+                        categoria,
+                        discord.CategoryChannel
+                    )
                     else None
                 ),
                 overwrites=permissoes,
