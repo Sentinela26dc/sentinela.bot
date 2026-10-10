@@ -43,7 +43,7 @@ EMOJI_SENTINELA_URL = (
 )
 
 # ==========================================
-# EMOJIS PERSONALIZADOS DAS FUNCOES
+# EMOJIS PERSONALIZADOS
 # ==========================================
 
 EMOJI_RUSHADOR = discord.PartialEmoji(
@@ -70,7 +70,6 @@ EMOJI_FUZILEIRO = discord.PartialEmoji(
     name="fuzileiro",
     id=1558311017677856771
 )
-
 
 # ==========================================
 # DISCORD
@@ -247,10 +246,7 @@ class ConfirmarRecusaView(discord.ui.View):
 
         except discord.HTTPException as erro:
             print(f"[ERRO CONCLUIR RECUSA] {erro}")
-            await interaction.followup.send(
-                "Ocorreu um erro ao concluir a recusa.",
-                ephemeral=True
-            )
+
 
     @discord.ui.button(
         label="Cancelar",
@@ -630,6 +626,7 @@ async def registrar_jogador(interaction, funcao, emoji):
         )
         return
 
+    # Responde imediatamente ao Discord para evitar timeout.
     await interaction.response.defer(
         ephemeral=True,
         thinking=True
@@ -675,35 +672,45 @@ async def registrar_jogador(interaction, funcao, emoji):
                 finally:
                     squads_em_criacao.discard(guild.id)
 
-    except discord.HTTPException as erro:
-        print(
-            f"[ERRO PROCESSAMENTO FILA] "
-            f"{type(erro).__name__}: {erro}"
-        )
-
-        try:
-            await interaction.followup.send(
-                "Você entrou na fila, mas houve um erro ao "
-                "atualizar a mensagem ou criar o canal do squad.",
-                ephemeral=True
-            )
-        except discord.HTTPException:
-            pass
-
     except Exception as erro:
         print(
-            f"[ERRO INESPERADO FILA] "
-            f"{type(erro).__name__}: {erro}"
+            f"[ERRO PROCESSAMENTO FILA] "
+            f"{type(erro).__name__}: {erro!r}"
         )
 
 
 # ==========================================
-# ESCOLHA DE FUNCAO
+# ESCOLHA DE FUNCAO - CORRIGIDA
 # ==========================================
 
 class EscolherFuncaoView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=180)
+
+    async def on_error(self, interaction, error, item):
+        print(
+            f"[ERRO SELECIONAR FUNCAO] "
+            f"{type(error).__name__}: {error!r}"
+        )
+
+        try:
+            mensagem = (
+                "❌ Ocorreu um erro ao selecionar sua função. "
+                "Tente novamente."
+            )
+
+            if interaction.response.is_done():
+                await interaction.followup.send(
+                    mensagem,
+                    ephemeral=True
+                )
+            else:
+                await interaction.response.send_message(
+                    mensagem,
+                    ephemeral=True
+                )
+        except Exception as erro:
+            print(f"[ERRO AO AVISAR JOGADOR] {erro!r}")
 
     @discord.ui.button(
         label="Rushador",
@@ -831,7 +838,8 @@ class FilaView(discord.ui.View):
             except Exception as erro_resposta:
                 print(
                     f"[ERRO AO RESPONDER] "
-                    f"{type(erro_resposta).__name__}: {erro_resposta!r}"
+                    f"{type(erro_resposta).__name__}: "
+                    f"{erro_resposta!r}"
                 )
 
     @discord.ui.button(
