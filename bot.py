@@ -774,26 +774,18 @@ class FilaView(discord.ui.View):
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_entrar_fila"
     )
-    async def entrar(self, interaction: discord.Interaction,
-                     button: discord.ui.Button):
-        print(
-            f"[FILA] Clique de {interaction.user} "
-            f"(ID {interaction.user.id})"
-        )
-
+    async def entrar(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
         try:
-            # Reconhece a interação imediatamente.
-            await interaction.response.defer(
-                ephemeral=True,
-                thinking=True
-            )
-
             guild = interaction.guild
 
             if guild is None:
-                await interaction.edit_original_response(
-                    content="❌ Esse botão só funciona no servidor.",
-                    view=None
+                await interaction.response.send_message(
+                    "❌ Esse botão só funciona no servidor.",
+                    ephemeral=True
                 )
                 return
 
@@ -801,55 +793,51 @@ class FilaView(discord.ui.View):
             membro_id = interaction.user.id
 
             if any(j["id"] == membro_id for j in fila):
-                await interaction.edit_original_response(
-                    content="⚠️ Você já está na fila!",
-                    view=None
+                await interaction.response.send_message(
+                    "⚠️ Você já está na fila!",
+                    ephemeral=True
                 )
                 return
 
             if len(fila) >= LIMITE_FILA:
-                await interaction.edit_original_response(
-                    content="❌ A fila já está completa!",
-                    view=None
+                await interaction.response.send_message(
+                    "❌ A fila já está completa!",
+                    ephemeral=True
                 )
                 return
 
-            # Abre o menu de funções na resposta privada.
-            await interaction.edit_original_response(
+            # Envia o menu diretamente como resposta privada.
+            await interaction.response.send_message(
                 content=(
                     "**🎮 ESCOLHA SUA FUNÇÃO**\n"
                     "Selecione sua função para a Guerra de Guilda:"
                 ),
-                view=EscolherFuncaoView()
+                view=EscolherFuncaoView(),
+                ephemeral=True
             )
 
-            print("[FILA] Seleção de função aberta com sucesso.")
+            print(
+                f"[FILA] Menu enviado para {interaction.user} "
+                f"(ID {interaction.user.id})."
+            )
 
         except Exception as erro:
             print(
-                f"[ERRO BOTAO ENTRAR] "
-                f"{type(erro).__name__}: {erro}"
+                f"[ERRO AO ABRIR FUNCOES] "
+                f"{type(erro).__name__}: {erro!r}"
             )
 
             try:
-                if interaction.response.is_done():
-                    await interaction.edit_original_response(
-                        content=(
-                            "❌ Não consegui abrir a seleção de função. "
-                            "Tente novamente."
-                        ),
-                        view=None
-                    )
-                else:
+                if not interaction.response.is_done():
                     await interaction.response.send_message(
-                        "❌ Não consegui abrir a seleção de função. "
+                        "❌ Não consegui abrir as funções. "
                         "Tente novamente.",
                         ephemeral=True
                     )
             except Exception as erro_resposta:
                 print(
-                    f"[ERRO AO RESPONDER CLIQUE] "
-                    f"{type(erro_resposta).__name__}: {erro_resposta}"
+                    f"[ERRO AO RESPONDER] "
+                    f"{type(erro_resposta).__name__}: {erro_resposta!r}"
                 )
 
     @discord.ui.button(
