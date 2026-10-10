@@ -284,8 +284,11 @@ class RecrutamentoView(discord.ui.View):
 
     @discord.ui.button(
         label="Aprovar",
-        emoji="✅",
-        style=discord.ButtonStyle.success,
+        emoji=discord.PartialEmoji(
+            name="emoji_aprovar",
+            id=1558331820985163817
+        ),
+        style=discord.ButtonStyle.secondary,
         custom_id="sentinela_aprovar_recrutamento"
     )
     async def aprovar(
