@@ -1,12 +1,13 @@
 
 
+
 import os
 import discord
 from discord.ext import commands
 
-# ==========================================
+# ==============================
 # CONFIGURAÇÕES
-# ==========================================
+# ==============================
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 LIMITE_FILA = 4
@@ -23,6 +24,11 @@ CARGOS_RECRUTADORES = [
 
 CATEGORIA_RECRUTAMENTO_ID = 1557959182429454436
 
+IMAGEM_BOAS_VINDAS = (
+    "https://i.pinimg.com/474x/cf/a8/ac/"
+    "cfa8acf9d3323076c8f1a4c5071a36c6.jpg"
+)
+
 EMOJI_SQUAD = discord.PartialEmoji(
     name="squad_ff",
     id=1557929631972327426
@@ -38,13 +44,12 @@ EMOJI_SENTINELA_URL = (
     "1557941358990200852.png"
 )
 
-# Filas temporárias por servidor.
 filas = {}
+canais_squad = {}
 
-
-# ==========================================
+# ==============================
 # INICIALIZAÇÃO
-# ==========================================
+# ==============================
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -62,47 +67,9 @@ def obter_fila(guild_id):
     return filas[guild_id]
 
 
-def pode_administrar(interaction):
-    """Somente dono do servidor ou administrador."""
-    if interaction.guild is None:
-        return False
-
-    if interaction.user.id == interaction.guild.owner_id:
-        return True
-
-    return (
-        isinstance(interaction.user, discord.Member)
-        and interaction.user.guild_permissions.administrator
-    )
-
-
-def obter_jogadores_do_canal(canal):
-    """Lê os IDs dos jogadores guardados no tópico."""
-    if not isinstance(canal, discord.TextChannel):
-        return []
-
-    topico = canal.topic or ""
-
-    for parte in topico.split("|"):
-        parte = parte.strip()
-
-        if parte.startswith("sentinela_squad:"):
-            ids = parte.split(":", 1)[1].strip()
-            try:
-                return [
-                    int(item)
-                    for item in ids.split(",")
-                    if item.strip()
-                ]
-            except ValueError:
-                return []
-
-    return []
-
-
-# ==========================================
-# EMBED DA FILA
-# ==========================================
+# ==============================
+# EMBED DA GUERRA DE GUILDA
+# ==============================
 
 def criar_embed_fila(guild_id):
     jogadores = obter_fila(guild_id)
@@ -118,15 +85,15 @@ def criar_embed_fila(guild_id):
         f"**{len(jogadores)} / {LIMITE_FILA}**"
     )
 
-    if jogadores:
+    if not jogadores:
+        lista = "Ninguém entrou na fila ainda."
+    else:
         lista = "\n".join(
             f"**{numero}.** <@{jogador_id}>"
             for numero, jogador_id in enumerate(
                 jogadores, start=1
             )
         )
-    else:
-        lista = "Ninguém entrou na fila ainda."
 
     embed.add_field(
         name="📋 QUEM ESTÁ NA FILA",
@@ -142,187 +109,9 @@ def criar_embed_fila(guild_id):
     return embed
 
 
-# ==========================================
-# CONFIRMAÇÃO PARA FECHAR A SALA
-# ==========================================
-
-class ConfirmarFechamento(discord.ui.View):
-
-    def __init__(self):
-        super().__init__(timeout=30)
-
-    @discord.ui.button(
-        label="CONFIRMAR FECHAMENTO",
-        emoji="🔒",
-        style=discord.ButtonStyle.danger,
-        custom_id="sentinela_confirmar_fechamento"
-    )
-    async def confirmar(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-        if not pode_administrar(interaction):
-            await interaction.response.send_message(
-                "❌ Somente o dono ou administradores podem fechar a sala.",
-                ephemeral=True
-            )
-            return
-
-        canal = interaction.channel
-
-        if not isinstance(canal, discord.TextChannel):
-            await interaction.response.send_message(
-                "Este botão só funciona em um canal de texto.",
-                ephemeral=True
-            )
-            return
-
-        if not obter_jogadores_do_canal(canal):
-            await interaction.response.send_message(
-                "❌ Este canal não foi reconhecido como sala do squad.",
-                ephemeral=True
-            )
-            return
-
-        await interaction.response.send_message(
-            "🔒 Sala encerrada. O canal será apagado."
-        )
-
-        try:
-            await canal.delete(
-                reason=f"Sala encerrada por {interaction.user}"
-            )
-        except discord.HTTPException:
-            print(f"Não consegui apagar o canal {canal.id}.")
-
-
-# ==========================================
-# BOTÕES DA SALA PRIVADA
-# ==========================================
-
-class ControleSquadView(discord.ui.View):
-
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.button(
-        label="INICIAR PARTIDA",
-        emoji="⚔️",
-        style=discord.ButtonStyle.success,
-        custom_id="sentinela_iniciar_partida"
-    )
-    async def iniciar(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-        if not pode_administrar(interaction):
-            await interaction.response.send_message(
-                "❌ Somente o dono ou administradores podem iniciar a partida.",
-                ephemeral=True
-            )
-            return
-
-        canal = interaction.channel
-
-        if not isinstance(canal, discord.TextChannel):
-            await interaction.response.send_message(
-                "Canal inválido.",
-                ephemeral=True
-            )
-            return
-
-        jogadores = obter_jogadores_do_canal(canal)
-
-        if len(jogadores) != LIMITE_FILA:
-            await interaction.response.send_message(
-                "❌ Não consegui confirmar os quatro jogadores desta sala.",
-                ephemeral=True
-            )
-            return
-
-        topico = canal.topic or ""
-
-        if "sentinela_partida_iniciada" in topico:
-            await interaction.response.send_message(
-                "⚠️ Esta partida já foi iniciada.",
-                ephemeral=True
-            )
-            return
-
-        try:
-            await canal.edit(
-                topic=topico + " | sentinela_partida_iniciada"
-            )
-        except discord.HTTPException:
-            await interaction.response.send_message(
-                "❌ Não consegui registrar o início. Confira minhas permissões.",
-                ephemeral=True
-            )
-            return
-
-        mencoes = " ".join(
-            f"<@{jogador_id}>" for jogador_id in jogadores
-        )
-
-        await interaction.response.send_message(
-            f"⚔️ **PARTIDA INICIADA!**\n\n"
-            f"Boa sorte, tropa Sentinela!\n{mencoes}\n\n"
-            "💛 Preparem-se para a Guerra de Guilda!"
-        )
-
-        button.disabled = True
-
-        try:
-            await interaction.message.edit(view=self)
-        except discord.HTTPException:
-            pass
-
-    @discord.ui.button(
-        label="FECHAR SALA",
-        emoji="🔒",
-        style=discord.ButtonStyle.danger,
-        custom_id="sentinela_fechar_sala"
-    )
-    async def fechar(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-        if not pode_administrar(interaction):
-            await interaction.response.send_message(
-                "❌ Somente o dono ou administradores podem fechar a sala.",
-                ephemeral=True
-            )
-            return
-
-        canal = interaction.channel
-
-        if not isinstance(canal, discord.TextChannel):
-            await interaction.response.send_message(
-                "Canal inválido.",
-                ephemeral=True
-            )
-            return
-
-        if not obter_jogadores_do_canal(canal):
-            await interaction.response.send_message(
-                "❌ Este canal não foi reconhecido como sala do squad.",
-                ephemeral=True
-            )
-            return
-
-        await interaction.response.send_message(
-            "⚠️ **Tem certeza que deseja fechar esta sala?**",
-            view=ConfirmarFechamento(),
-            ephemeral=True
-        )
-
-
-# ==========================================
-# CRIAÇÃO DA SALA DO SQUAD
-# ==========================================
+# ==============================
+# CRIAR CANAL PRIVADO DO SQUAD
+# ==============================
 
 async def criar_canal_squad(guild, jogadores, categoria=None):
     permissoes = {
@@ -332,17 +121,13 @@ async def criar_canal_squad(guild, jogadores, categoria=None):
     }
 
     bot_membro = guild.me
-
-    if bot_membro is None:
-        raise RuntimeError("Não consegui localizar o bot no servidor.")
-
-    permissoes[bot_membro] = discord.PermissionOverwrite(
-        view_channel=True,
-        send_messages=True,
-        read_message_history=True,
-        manage_channels=True,
-        manage_messages=True
-    )
+    if bot_membro is not None:
+        permissoes[bot_membro] = discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            read_message_history=True,
+            manage_channels=True
+        )
 
     for jogador_id in jogadores:
         membro = guild.get_member(jogador_id)
@@ -356,50 +141,30 @@ async def criar_canal_squad(guild, jogadores, categoria=None):
                 embed_links=True
             )
 
-    ids = ",".join(str(jogador_id) for jogador_id in jogadores)
-
     canal = await guild.create_text_channel(
         name="🔒・squad-sentinela",
         category=categoria,
         overwrites=permissoes,
-        topic=(
-            "Canal privado da equipe de Guerra de Guilda. "
-            f"| sentinela_squad:{ids}"
-        ),
-        reason="Squad completo da Guerra de Guilda"
+        topic="Canal privado da equipe de Guerra de Guilda da Sentinela."
     )
 
     mencoes = " ".join(
         f"<@{jogador_id}>" for jogador_id in jogadores
     )
 
-    embed = discord.Embed(
-        title="𝐆𝐔𝐄𝐑𝐑𝐀 𝐃𝐄 𝐆𝐔𝐈𝐋𝐃𝐀",
-        description=(
-            "🦁 **SQUAD COMPLETO!**\n\n"
-            "Salve, tropa! Os quatro jogadores estão reunidos.\n"
-            "Organizem a estratégia e preparem-se para a guerra.\n\n"
-            f"👥 **Integrantes:**\n{mencoes}"
-        ),
-        color=discord.Color.gold()
-    )
-
-    embed.set_footer(
-        text="SENTINELA • GUERRA DE GUILDA",
-        icon_url=EMOJI_SENTINELA_URL
-    )
-
     await canal.send(
-        embed=embed,
-        view=ControleSquadView()
+        "⚔️ **SQUAD COMPLETO — GUERRA DE GUILDA!**\n\n"
+        "Salve, equipe Sentinela! Os quatro jogadores estão reunidos.\n\n"
+        f"👥 **Integrantes:**\n{mencoes}\n\n"
+        "💛 Organizem a estratégia por aqui!"
     )
 
     return canal
 
 
-# ==========================================
+# ==============================
 # BOTÕES DA FILA
-# ==========================================
+# ==============================
 
 class FilaView(discord.ui.View):
 
@@ -425,7 +190,8 @@ class FilaView(discord.ui.View):
             return
 
         guild = interaction.guild
-        jogadores = obter_fila(guild.id)
+        guild_id = guild.id
+        jogadores = obter_fila(guild_id)
         jogador_id = interaction.user.id
 
         if jogador_id in jogadores:
@@ -443,57 +209,68 @@ class FilaView(discord.ui.View):
             return
 
         jogadores.append(jogador_id)
+        canal_criado = None
 
         if len(jogadores) == LIMITE_FILA:
-            categoria = None
-
-            if isinstance(interaction.channel, discord.TextChannel):
-                categoria = interaction.channel.category
-
             try:
-                await criar_canal_squad(
+                categoria = None
+
+                if isinstance(
+                    interaction.channel,
+                    discord.TextChannel
+                ):
+                    categoria = interaction.channel.category
+
+                canal_criado = await criar_canal_squad(
                     guild,
                     jogadores.copy(),
                     categoria
                 )
 
-            except (discord.Forbidden, discord.HTTPException) as erro:
+                canais_squad[guild_id] = canal_criado.id
+
+            except discord.Forbidden:
                 jogadores.remove(jogador_id)
 
                 await interaction.response.edit_message(
-                    embed=criar_embed_fila(guild.id),
+                    embed=criar_embed_fila(guild_id),
                     view=self
                 )
 
                 await interaction.followup.send(
                     "❌ Não consegui criar o canal privado. "
-                    "Confira as permissões **Gerenciar Canais**, "
-                    "**Ver Canais** e **Enviar Mensagens** do bot.",
+                    "Confira se o bot tem a permissão Gerenciar Canais.",
                     ephemeral=True
                 )
-
-                print(f"Erro ao criar sala: {erro}")
                 return
 
-            # Libera a fila para a próxima equipe.
-            jogadores.clear()
+            except discord.HTTPException as erro:
+                jogadores.remove(jogador_id)
+                print(f"Erro ao criar canal do squad: {erro}")
 
-            await interaction.response.edit_message(
-                embed=criar_embed_fila(guild.id),
-                view=self
-            )
+                await interaction.response.edit_message(
+                    embed=criar_embed_fila(guild_id),
+                    view=self
+                )
 
-            await interaction.followup.send(
-                "🏆 **Squad completo!** O canal privado foi criado. "
-                "A fila já está disponível para a próxima equipe.",
-                ephemeral=True
-            )
-            return
+                await interaction.followup.send(
+                    "❌ O Discord não permitiu criar o canal agora. "
+                    "Tente novamente.",
+                    ephemeral=True
+                )
+                return
 
         await interaction.response.edit_message(
-            embed=criar_embed_fila(guild.id),
+            embed=criar_embed_fila(guild_id),
             view=self
         )
+
+        if canal_criado is not None:
+            await interaction.followup.send(
+                f"🏆 **Squad completo!** Canal privado: "
+                f"{canal_criado.mention}",
+                ephemeral=True
+            )
 
     @discord.ui.button(
         label="SAIR DA FILA",
@@ -513,7 +290,8 @@ class FilaView(discord.ui.View):
             )
             return
 
-        jogadores = obter_fila(interaction.guild.id)
+        guild_id = interaction.guild.id
+        jogadores = obter_fila(guild_id)
         jogador_id = interaction.user.id
 
         if jogador_id not in jogadores:
@@ -525,15 +303,28 @@ class FilaView(discord.ui.View):
 
         jogadores.remove(jogador_id)
 
+        canal_id = canais_squad.pop(guild_id, None)
+
+        if canal_id is not None:
+            canal = interaction.guild.get_channel(canal_id)
+
+            if canal is not None:
+                try:
+                    await canal.delete(
+                        reason="Um jogador saiu da fila."
+                    )
+                except discord.HTTPException as erro:
+                    print(f"Erro ao excluir canal do squad: {erro}")
+
         await interaction.response.edit_message(
-            embed=criar_embed_fila(interaction.guild.id),
+            embed=criar_embed_fila(guild_id),
             view=self
         )
 
 
-# ==========================================
-# COMANDO PARA CRIAR A FILA
-# ==========================================
+# ==============================
+# COMANDO FILA
+# ==============================
 
 @bot.command(name="fila")
 @commands.guild_only()
@@ -544,18 +335,23 @@ async def fila(ctx):
     )
 
 
-# ==========================================
-# OUTROS COMANDOS
-# ==========================================
+# ==============================
+# COMANDO PING
+# ==============================
 
 @bot.command(name="ping")
 async def ping(ctx):
     latencia = round(bot.latency * 1000)
+
     await ctx.send(
         f"🏓 **Pong!** Sentinela está funcionando.\n"
         f"📡 Latência: **{latencia} ms**"
     )
 
+
+# ==============================
+# COMANDO SENTINELA
+# ==============================
 
 @bot.command(name="sentinela")
 async def sentinela(ctx):
@@ -564,14 +360,19 @@ async def sentinela(ctx):
         description=(
             "Bot oficial da Guilda Sentinela!\n\n"
             "⚔️ Guerra de Guilda\n"
-            "🔒 Canais privados para os squads\n"
+            "🔒 Canal privado automático para o squad\n"
             "🎫 Central de Atendimento\n"
             "💛 Sempre protegendo a Sentinela."
         ),
         color=discord.Color.gold()
     )
+
     await ctx.send(embed=embed)
 
+
+# ==============================
+# COMANDO AJUDA
+# ==============================
 
 @bot.command(name="ajuda")
 async def ajuda(ctx):
@@ -589,7 +390,7 @@ async def ajuda(ctx):
 
     embed.add_field(
         name="🦁 Informações",
-        value="`!sentinela` — Mostra informações do bot.",
+        value="`!sentinela` — Informações do bot.",
         inline=False
     )
 
@@ -600,26 +401,24 @@ async def ajuda(ctx):
     )
 
     embed.add_field(
-        name="🔒 Controle de sala",
-        value=(
-            "Use os botões **INICIAR PARTIDA** e **FECHAR SALA** "
-            "no canal privado do squad."
-        ),
-        inline=False
-    )
-
-    embed.add_field(
         name="🎫 Atendimento",
-        value="O sistema de tickets ainda precisa ser integrado.",
+        value="O sistema de tickets ainda precisa ser adicionado.",
         inline=False
     )
 
     await ctx.send(embed=embed)
 
 
-# ==========================================
-# RECRUTAMENTO AUTOMÁTICO
-# ==========================================
+# ==============================
+# REGISTRO DOS BOTÕES
+# ==============================
+
+bot.add_view(FilaView())
+
+
+# ==============================
+# RECRUTAMENTO E BOAS-VINDAS
+# ==============================
 
 @bot.event
 async def on_member_update(before, after):
@@ -636,11 +435,13 @@ async def on_member_update(before, after):
         name=CARGO_MEMBRO
     )
 
-    if cargo_recruta is None or cargo_membro is None:
-        return
+    # --------------------------------
+    # RECEBEU O CARGO DE RECRUTA
+    # --------------------------------
 
     recebeu_recruta = (
-        cargo_recruta.id not in cargos_antes
+        cargo_recruta is not None
+        and cargo_recruta.id not in cargos_antes
         and cargo_recruta.id in cargos_depois
     )
 
@@ -701,11 +502,13 @@ async def on_member_update(before, after):
                 CATEGORIA_RECRUTAMENTO_ID
             )
 
-            if not isinstance(categoria, discord.CategoryChannel):
+            if not isinstance(
+                categoria,
+                discord.CategoryChannel
+            ):
                 categoria = None
 
             nome_seguro = after.display_name.lower()
-
             nome_seguro = "".join(
                 caractere
                 if caractere.isalnum() or caractere in "-_"
@@ -722,8 +525,8 @@ async def on_member_update(before, after):
                     category=categoria,
                     overwrites=permissoes,
                     topic=(
-                        "Canal privado de recrutamento "
-                        f"| {marcador}"
+                        "Canal privado de recrutamento | "
+                        f"{marcador}"
                     ),
                     reason=f"Recrutamento iniciado para {after}"
                 )
@@ -744,40 +547,81 @@ async def on_member_update(before, after):
             except discord.HTTPException as erro:
                 print(f"Erro no recrutamento: {erro}")
 
+    # --------------------------------
+    # RECEBEU O CARGO SENTINELA
+    # ENVIA A NOVA MENSAGEM COM IMAGEM
+    # --------------------------------
+
     recebeu_cargo_membro = (
-        cargo_membro.id not in cargos_antes
+        cargo_membro is not None
+        and cargo_membro.id not in cargos_antes
         and cargo_membro.id in cargos_depois
     )
 
-    if recebeu_cargo_membro and CANAL_BOAS_VINDAS_ID:
+    if recebeu_cargo_membro:
         canal_boas_vindas = after.guild.get_channel(
             CANAL_BOAS_VINDAS_ID
         )
 
-        if isinstance(canal_boas_vindas, discord.TextChannel):
+        if isinstance(
+            canal_boas_vindas,
+            discord.TextChannel
+        ):
+            embed = discord.Embed(
+                title="🟡 NOVO SENTINELA NA ÁREA! 🦁",
+                description=(
+                    "Seja bem-vindo ao servidor! 🦁 🔥 "
+                    f"{after.mention}\n\n"
+                    "Agora você faz parte da **Sentinela**. "
+                    "Fica à vontade pra resenhar com os sentinelas, "
+                    "formar seu squad e participar das Guerras "
+                    "de Guilda com a gente! 🦁\n\n"
+                    "📚 Dá uma conferida nas regras do servidor "
+                    "pra ficar por dentro da nossa comunidade "
+                    "e evitar problemas."
+                ),
+                color=discord.Color.gold()
+            )
+
+            embed.set_image(url=IMAGEM_BOAS_VINDAS)
+
             try:
                 await canal_boas_vindas.send(
-                    "🦁💛 **𝐔𝐌 𝐍𝐎𝐕𝐎 𝐒𝐄𝐍𝐓𝐈𝐍𝐄𝐋𝐀 𝐂𝐇𝐄𝐆𝐎𝐔!**\n\n"
-                    f"Vamos dar as boas-vindas a {after.mention}, "
-                    "o mais novo membro da família **𝐒𝐄𝐍𝐓𝐈𝐍𝐄𝐋𝐀**! ⚔️"
+                    content=after.mention,
+                    embed=embed
                 )
+
+                print(
+                    f"Boas-vindas enviadas para {after} "
+                    "após receber o cargo Sentinela."
+                )
+
             except discord.Forbidden:
-                print("Sem permissão para enviar boas-vindas.")
+                print(
+                    "Sem permissão para enviar boas-vindas. "
+                    "Confira as permissões do canal."
+                )
+
             except discord.HTTPException as erro:
-                print(f"Erro nas boas-vindas: {erro}")
+                print(
+                    f"Erro ao enviar boas-vindas: {erro}"
+                )
+
+    # Avisos se os nomes dos cargos estiverem incorretos
+    if cargo_recruta is None:
+        print(
+            f"Cargo de recruta não encontrado: {CARGO_RECRUTA}"
+        )
+
+    if cargo_membro is None:
+        print(
+            f"Cargo Sentinela não encontrado: {CARGO_MEMBRO}"
+        )
 
 
-# ==========================================
-# EVENTO DE INICIALIZAÇÃO
-# ==========================================
-
-@bot.event
-async def setup_hook():
-    # Registra as views persistentes para os botões continuarem
-    # funcionando depois de um reinício, enquanto o bot estiver ativo.
-    bot.add_view(FilaView())
-    bot.add_view(ControleSquadView())
-
+# ==============================
+# BOT ONLINE
+# ==============================
 
 @bot.event
 async def on_ready():
@@ -786,17 +630,14 @@ async def on_ready():
     print(f"Conectado como: {bot.user}")
     print(f"ID: {bot.user.id}")
     print("=" * 40)
-    print("Use !fila para criar o painel da guerra.")
+    print("Use !fila para criar a fila de guerra.")
+    print("Boas-vindas serão enviadas ao receber o cargo Sentinela.")
 
-
-# ==========================================
-# EXECUÇÃO
-# ==========================================
 
 if not TOKEN:
     raise RuntimeError(
-        "Token não encontrado! Configure DISCORD_TOKEN nas "
-        "variáveis do Railway."
+        "Token não encontrado! Configure DISCORD_TOKEN no Railway."
     )
 
 bot.run(TOKEN)
+
