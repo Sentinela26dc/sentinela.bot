@@ -1,3 +1,4 @@
+
 import os
 import asyncio
 import discord
@@ -41,13 +42,11 @@ URL_IMAGEM_PASSE = (
 # ==========================================
 
 EMOJI_SQUAD = discord.PartialEmoji(
-    name="squad_ff",
-    id=1557929631972327426
+    name="squad_ff", id=1557929631972327426
 )
 
 EMOJI_ENTRAR = discord.PartialEmoji(
-    name="ump_roxa",
-    id=1557943886230454332
+    name="ump_roxa", id=1557943886230454332
 )
 
 EMOJI_SENTINELA_URL = (
@@ -55,33 +54,27 @@ EMOJI_SENTINELA_URL = (
 )
 
 EMOJI_RUSHADOR = discord.PartialEmoji(
-    name="rush",
-    id=1558310698944172114
+    name="rush", id=1558310698944172114
 )
 
 EMOJI_ATIRADOR = discord.PartialEmoji(
-    name="atirador",
-    id=1558310549022973973
+    name="atirador", id=1558310549022973973
 )
 
 EMOJI_FUZILEIRO = discord.PartialEmoji(
-    name="fuzileiro",
-    id=1558310653251297344
+    name="fuzileiro", id=1558310653251297344
 )
 
 EMOJI_GRANADEIRO = discord.PartialEmoji(
-    name="granadeiro",
-    id=1558310498905227274
+    name="granadeiro", id=1558310498905227274
 )
 
 EMOJI_SUPORTE = discord.PartialEmoji(
-    name="suporte",
-    id=1558310434950610994
+    name="suporte", id=1558310434950610994
 )
 
 EMOJI_GUARDIOES = discord.PartialEmoji(
-    name="guardioes",
-    id=1558610184471973959
+    name="guardioes", id=1558610184471973959
 )
 
 # ==========================================
@@ -92,10 +85,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(
-    command_prefix="!",
-    intents=intents
-)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 filas = {}
 canais_squad = {}
@@ -121,15 +111,8 @@ def eh_recrutador(membro):
     if membro.guild_permissions.administrator:
         return True
 
-    autorizados = {
-        CARGO_ADM_ID,
-        CARGO_MODERADOR_ID
-    }
-
-    return any(
-        cargo.id in autorizados
-        for cargo in membro.roles
-    )
+    autorizados = {CARGO_ADM_ID, CARGO_MODERADOR_ID}
+    return any(cargo.id in autorizados for cargo in membro.roles)
 
 
 def obter_id_recrutado(canal):
@@ -160,9 +143,7 @@ async def excluir_canal_recrutamento(canal):
     await asyncio.sleep(TEMPO_EXCLUSAO_CANAL)
 
     try:
-        await canal.delete(
-            reason="Recrutamento encerrado."
-        )
+        await canal.delete(reason="Recrutamento encerrado.")
     except discord.HTTPException as erro:
         print(f"[ERRO EXCLUIR RECRUTAMENTO] {erro}")
 
@@ -213,13 +194,9 @@ class ConfirmarRecusaView(discord.ui.View):
             )
             return
 
-        await interaction.response.defer(
-            ephemeral=True,
-            thinking=True
-        )
+        await interaction.response.defer(ephemeral=True, thinking=True)
 
         membro = interaction.guild.get_member(recrutado_id)
-
         cargo = discord.utils.get(
             interaction.guild.roles,
             name=CARGO_RECRUTA
@@ -228,8 +205,7 @@ class ConfirmarRecusaView(discord.ui.View):
         if membro and cargo and cargo in membro.roles:
             try:
                 await membro.remove_roles(
-                    cargo,
-                    reason="Recrutamento recusado."
+                    cargo, reason="Recrutamento recusado."
                 )
             except discord.HTTPException as erro:
                 print(f"[ERRO REMOVER CARGO] {erro}")
@@ -329,10 +305,7 @@ class RecrutamentoView(discord.ui.View):
             )
             return
 
-        await interaction.response.defer(
-            ephemeral=True,
-            thinking=True
-        )
+        await interaction.response.defer(ephemeral=True, thinking=True)
 
         membro = interaction.guild.get_member(recrutado_id)
 
@@ -346,7 +319,6 @@ class RecrutamentoView(discord.ui.View):
             interaction.guild.roles,
             name=CARGO_MEMBRO
         )
-
         cargo_recruta = discord.utils.get(
             interaction.guild.roles,
             name=CARGO_RECRUTA
@@ -366,13 +338,10 @@ class RecrutamentoView(discord.ui.View):
 
         try:
             await membro.add_roles(
-                cargo_membro,
-                reason="Recrutamento aprovado."
+                cargo_membro, reason="Recrutamento aprovado."
             )
-
             await membro.remove_roles(
-                cargo_recruta,
-                reason="Recrutamento aprovado."
+                cargo_recruta, reason="Recrutamento aprovado."
             )
 
         except discord.Forbidden:
@@ -486,8 +455,7 @@ async def garantir_mensagem_recrutamento(canal, membro):
                 embed=embed,
                 view=RecrutamentoView(),
                 allowed_mentions=discord.AllowedMentions(
-                    roles=True,
-                    users=True
+                    roles=True, users=True
                 )
             )
             return
@@ -497,8 +465,7 @@ async def garantir_mensagem_recrutamento(canal, membro):
         embed=embed,
         view=RecrutamentoView(),
         allowed_mentions=discord.AllowedMentions(
-            roles=True,
-            users=True
+            roles=True, users=True
         )
     )
 
@@ -525,9 +492,7 @@ async def criar_recrutamento(membro):
                 )
                 return
 
-        categoria = guild.get_channel(
-            CATEGORIA_RECRUTAMENTO_ID
-        )
+        categoria = guild.get_channel(CATEGORIA_RECRUTAMENTO_ID)
 
         permissoes = {
             guild.default_role: discord.PermissionOverwrite(
@@ -540,12 +505,8 @@ async def criar_recrutamento(membro):
             )
         }
 
-        for cargo_id in (
-            CARGO_MODERADOR_ID,
-            CARGO_ADM_ID
-        ):
+        for cargo_id in (CARGO_MODERADOR_ID, CARGO_ADM_ID):
             cargo = guild.get_role(cargo_id)
-
             if cargo:
                 permissoes[cargo] = discord.PermissionOverwrite(
                     view_channel=True,
@@ -577,7 +538,6 @@ async def criar_recrutamento(membro):
         )
 
         await garantir_mensagem_recrutamento(canal, membro)
-
         print(f"[RECRUTAMENTO] Canal criado para {membro}.")
 
     except discord.Forbidden:
@@ -626,7 +586,6 @@ def criar_embed_fila(guild_id):
             value="\n\n".join(jogadores),
             inline=False
         )
-
     else:
         embed.add_field(
             name="\u200b",
@@ -654,7 +613,6 @@ async def atualizar_mensagem_fila(guild):
 
     try:
         mensagem = await canal.fetch_message(mensagem_id)
-
         await mensagem.edit(
             embed=criar_embed_fila(guild.id),
             view=FilaView()
@@ -675,7 +633,6 @@ async def criar_canal_squad(guild, fila):
 
     if canal_anterior_id:
         canal_anterior = guild.get_channel(canal_anterior_id)
-
         if canal_anterior:
             try:
                 await canal_anterior.delete(
@@ -692,7 +649,6 @@ async def criar_canal_squad(guild, fila):
 
     for jogador in fila:
         membro = guild.get_member(jogador["id"])
-
         if membro:
             permissoes[membro] = discord.PermissionOverwrite(
                 view_channel=True,
@@ -702,7 +658,6 @@ async def criar_canal_squad(guild, fila):
 
     for cargo_id in (CARGO_MODERADOR_ID, CARGO_ADM_ID):
         cargo = guild.get_role(cargo_id)
-
         if cargo:
             permissoes[cargo] = discord.PermissionOverwrite(
                 view_channel=True,
@@ -755,10 +710,7 @@ async def registrar_jogador(interaction, funcao, emoji):
         )
         return
 
-    await interaction.response.defer(
-        ephemeral=True,
-        thinking=True
-    )
+    await interaction.response.defer(ephemeral=True, thinking=True)
 
     fila = obter_fila(guild.id)
     membro_id = interaction.user.id
@@ -796,7 +748,6 @@ async def registrar_jogador(interaction, funcao, emoji):
             and guild.id not in squads_em_criacao
         ):
             squads_em_criacao.add(guild.id)
-
             try:
                 await criar_canal_squad(guild, list(fila))
             finally:
@@ -954,8 +905,7 @@ class FilaView(discord.ui.View):
     async def sair(self, interaction, button):
         try:
             await interaction.response.defer(
-                ephemeral=True,
-                thinking=True
+                ephemeral=True, thinking=True
             )
 
             guild = interaction.guild
@@ -990,7 +940,6 @@ class FilaView(discord.ui.View):
 
             if canal_id:
                 canal = guild.get_channel(canal_id)
-
                 if canal:
                     try:
                         await canal.delete(
@@ -1060,6 +1009,9 @@ async def ajuda(ctx):
 @bot.command()
 @commands.has_permissions(manage_guild=True)
 async def fila(ctx):
+    if ctx.guild is None:
+        return
+
     mensagem = await ctx.send(
         embed=criar_embed_fila(ctx.guild.id),
         view=FilaView()
@@ -1108,7 +1060,7 @@ async def listaremojis(ctx):
 
 
 # ==========================================
-# PUBLICAR EVENTO DO PASSE BOOYAH
+# PUBLICAR ANUNCIO DO PASSE BOOYAH
 # ==========================================
 
 @bot.command(name="publicarpasse")
@@ -1116,10 +1068,12 @@ async def listaremojis(ctx):
 async def publicarpasse(ctx):
     try:
         canal = bot.get_channel(CANAL_PASSE_BOOYAAH_ID)
+
         if canal is None:
             canal = await bot.fetch_channel(
                 CANAL_PASSE_BOOYAAH_ID
             )
+
         if not isinstance(canal, discord.TextChannel):
             await ctx.send("❌ O canal não é um canal de texto.")
             return
@@ -1127,45 +1081,61 @@ async def publicarpasse(ctx):
         await canal.send(URL_IMAGEM_PASSE)
 
         embed = discord.Embed(
-            title="<:PASSE_BOOYAH:1558634919985680454> 𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐄 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇",
-            description="embed.set_footer(
-    text="SENTINELA • EVENTOS",
-    icon_url="https://cdn.discordapp.com/emojis/1558683706489708634.webp"
-)",
+            title=(
+                "<:PASSE_BOOYAH:1558634919985680454> "
+                "𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐄 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇"
+            ),
+            description=(
+                "<:Sentry:1558683706489708634> "
+                "**EVENTO SENTINELA — PASSE BOOYAH**"
+            ),
             color=discord.Color.gold()
         )
 
         embed.add_field(
-            name="🎟️ **Inscrição**",
-            value="**R$ 0,50 por pessoa.**",
+            name="🎟️ Inscrição",
+            value="**Participação gratuita.**",
             inline=False
         )
 
         embed.add_field(
-            name="👥 **Mínimo de participantes**",
-            value="**Mínimo de 10 participantes confirmados para realizar o sorteio.**",
+            name="👥 Participantes",
+            value="Confira as regras do evento no servidor.",
             inline=False
         )
 
         embed.add_field(
-            name="📅 **Início do evento**",
+            name="📅 Início do evento",
             value="**15/10/2026**",
             inline=False
         )
 
         embed.add_field(
-            name="<a:AI_Boost_crystal:1558664770473959555> **BENEFÍCIO EXCLUSIVO**",
-            value="**Quem impulsiona o servidor tem direito a 1 inscrição grátis por mês!**",
+            name="<a:AI_Boost_crystal:1558664770473959555> BENEFÍCIO EXCLUSIVO",
+            value=(
+                "**Quem impulsiona o servidor tem direito "
+                "a participar de uma atividade exclusiva por mês!**"
+            ),
             inline=False
         )
 
         embed.add_field(
-            name="<a:check_discord:1558664467594612816> **ATENÇÃO, SENTINELAS!**",
-            value="**Se não alcançarmos o mínimo de 10 participantes até o início do evento, quem pagou receberá o reembolso.**",
+            name="<a:check_discord:1558664467594612816> ATENÇÃO, SENTINELAS!",
+            value=(
+                "**Confira as informações e as regras oficiais "
+                "antes de participar.**"
+            ),
             inline=False
         )
 
-        embed.set_footer(text="<:Sentry:1558683706489708634> SENTINELA • EVENTOS")
+        # O emoji aparece como icone do rodape.
+        embed.set_footer(
+            text="SENTINELA • EVENTOS",
+            icon_url=(
+                "https://cdn.discordapp.com/emojis/"
+                "1558683706489708634.webp"
+            )
+        )
 
         await canal.send(embed=embed)
 
@@ -1173,6 +1143,7 @@ async def publicarpasse(ctx):
         await ctx.send(
             "❌ O bot não tem permissão para publicar nesse canal."
         )
+
     except discord.HTTPException as erro:
         print(f"[ERRO PUBLICAR PASSE] {erro!r}")
         await ctx.send(
@@ -1268,17 +1239,11 @@ async def on_member_update(before, after):
 
         mencao_regras = (
             canal_regras.mention
-            if isinstance(
-                canal_regras,
-                discord.TextChannel
-            )
+            if isinstance(canal_regras, discord.TextChannel)
             else f"<#{CANAL_REGRAS_ID}>"
         )
 
-        if isinstance(
-            canal_boas_vindas,
-            discord.TextChannel
-        ):
+        if isinstance(canal_boas_vindas, discord.TextChannel):
             embed = discord.Embed(
                 title="🦁 NOVO SENTINELA NA ÁREA!",
                 description=(
