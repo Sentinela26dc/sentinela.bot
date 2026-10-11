@@ -1127,28 +1127,25 @@ async def publicarpasse(ctx):
         await canal.send(URL_IMAGEM_PASSE)
 
         embed = discord.Embed(
-            title=(
-                "<:PASSE_BOOYAH:1558634919985680454> "
-                "**𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐄 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇**"
-            ),
-            description="**🦁 EVENTO SENTINELA — SORTEIO PASSE BOOYAH**",
+            title="<:PASSE_BOOYAH:1558634919985680454> 𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐄 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇",
+            description="<:Sentry:1558683706489708634> **EVENTO SENTINELA — SORTEIO PASSE BOOYAH**",
             color=discord.Color.gold()
         )
 
         embed.add_field(
-            name="🎟️ **INSCRIÇÃO**",
+            name="🎟️ **Inscrição**",
             value="**R$ 0,50 por pessoa.**",
             inline=False
         )
 
         embed.add_field(
-            name="👥 **META DE PARTICIPANTES**",
+            name="👥 **Mínimo de participantes**",
             value="**Mínimo de 10 participantes confirmados para realizar o sorteio.**",
             inline=False
         )
 
         embed.add_field(
-            name="📅 **INÍCIO DO EVENTO**",
+            name="📅 **Início do evento**",
             value="**15/10/2026**",
             inline=False
         )
@@ -1161,16 +1158,11 @@ async def publicarpasse(ctx):
 
         embed.add_field(
             name="<a:check_discord:1558664467594612816> **ATENÇÃO, SENTINELAS!**",
-            value=(
-                "**Se a meta de 10 participantes não for alcançada até o início do evento, "
-                "o sorteio será adiado ou cancelado, e quem pagou receberá o reembolso.**"
-            ),
+            value="**Se não alcançarmos o mínimo de 10 participantes até o início do evento, quem pagou receberá o reembolso.**",
             inline=False
         )
 
-        embed.set_footer(
-            text="<:sentinela:1557941358990200852> SENTINELA • EVENTOS"
-        )
+        embed.set_footer(text="<:Sentry:1558683706489708634> SENTINELA • EVENTOS")
 
         await canal.send(embed=embed)
 
