@@ -1094,7 +1094,7 @@ async def publicarpasse(ctx):
 
         embed.add_field(
             name="🎟️ Inscrição",
-            value="**Participação gratuita.**",
+            value="**R$ 0,50.**",
             inline=False
         )
 
@@ -1114,7 +1114,7 @@ async def publicarpasse(ctx):
             name="<a:AI_Boost_crystal:1558664770473959555> BENEFÍCIO EXCLUSIVO",
             value=(
                 "**Quem impulsiona o servidor tem direito "
-                "a participar de uma atividade exclusiva por mês!**"
+                "a 1 ticket gratuito por mês!**"
             ),
             inline=False
         )
