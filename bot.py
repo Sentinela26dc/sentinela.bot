@@ -21,11 +21,20 @@ CARGO_ADM_ID = 1556441469978411032
 
 CANAL_BOAS_VINDAS_ID = 1556464423957299230
 CANAL_REGRAS_ID = 1556521435302989904
+CANAL_PASSE_BOOYAAH_ID = 1558596818948984933
 CATEGORIA_RECRUTAMENTO_ID = 1557959182429454436
 
 IMAGEM_BOAS_VINDAS = (
     "https://i.pinimg.com/474x/cf/a8/ac/"
     "cfa8acf9d3323076c8f1a4c5071a36c6.jpg"
+)
+
+URL_IMAGEM_PASSE = (
+    "https://cdn.discordapp.com/attachments/1556840973022011402/"
+    "1558630340573143050/"
+    "60d5e3bd-6b8f-4d42-abf9-4b020a751464.jpg"
+    "?ex=6acc231f&is=6acad19f&hm="
+    "3b96e4c4f7630dba394437ac341c1909a360e343183848f028cb00ae4da67b12"
 )
 
 # ==========================================
@@ -69,6 +78,11 @@ EMOJI_GRANADEIRO = discord.PartialEmoji(
 EMOJI_SUPORTE = discord.PartialEmoji(
     name="suporte",
     id=1558310434950610994
+)
+
+EMOJI_GUARDIOES = discord.PartialEmoji(
+    name="guardioes",
+    id=1558610184471973959
 )
 
 # ==========================================
@@ -1041,7 +1055,8 @@ async def ajuda(ctx):
         "`!sentinela` — mensagem da guilda\n"
         "`!ajuda` — mostra os comandos\n"
         "`!fila` — publica a fila da Guerra de Guilda\n"
-        "`!listaremojis` — lista os emojis do servidor"
+        "`!listaremojis` — lista os emojis do servidor\n"
+        "`!publicarpasse` — publica o anúncio do passe Booyah"
     )
 
 
@@ -1093,6 +1108,62 @@ async def listaremojis(ctx):
 
     for inicio in range(0, len(texto), 1800):
         await ctx.send(texto[inicio:inicio + 1800])
+
+
+# ==========================================
+# PUBLICAR EVENTO DO PASSE BOOYAH
+# ==========================================
+
+@bot.command(name="publicarpasse")
+@commands.has_permissions(administrator=True)
+async def publicarpasse(ctx):
+    try:
+        canal = bot.get_channel(CANAL_PASSE_BOOYAAH_ID)
+        if canal is None:
+            canal = await bot.fetch_channel(
+                CANAL_PASSE_BOOYAAH_ID
+            )
+        if not isinstance(canal, discord.TextChannel):
+            await ctx.send("❌ O canal não é um canal de texto.")
+            return
+        # Envia a imagem primeiro.
+        await canal.send(URL_IMAGEM_PASSE)
+        # Envia o texto logo abaixo.
+        embed = discord.Embed(
+            title=f"{EMOJI_GUARDIOES} 𝐆𝐔𝐀𝐑𝐃𝐈𝐎𝐄𝐒 𝐃𝐎 𝐎𝐄𝐒𝐓𝐄",
+            description=(
+                "🦁 **EVENTO SENTINELA — PASSE BOOYAH**\n\n"
+                "🎮 **Prêmio:** Passe Booyah — Guardiões do Oeste\n\n"
+                "📢 Confira as regras e as informações oficiais "
+                "do evento antes de participar.\n\n"
+                "Boa sorte a todos os Sentinelas!"
+            ),
+            color=discord.Color.gold()
+        )
+        embed.set_footer(text="SENTINELA • EVENTOS")
+        await canal.send(embed=embed)
+        await ctx.send(
+            f"✅ Evento publicado em {canal.mention}!"
+        )
+    except discord.Forbidden:
+        await ctx.send(
+            "❌ O bot não tem permissão para publicar nesse canal."
+        )
+    except discord.HTTPException as erro:
+        print(f"[ERRO PUBLICAR PASSE] {erro!r}")
+        await ctx.send(
+            "❌ Falha ao publicar. Confira os logs do Railway."
+        )
+
+
+@publicarpasse.error
+async def publicarpasse_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(
+            "❌ Você precisa ser administrador para publicar."
+        )
+    else:
+        print(f"[ERRO COMANDO PASSE] {error!r}")
 
 
 # ==========================================
