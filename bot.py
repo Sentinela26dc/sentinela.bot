@@ -1094,7 +1094,7 @@ async def publicarpasse(ctx):
 
         embed.add_field(
             name="🎟️ Inscrição",
-            value="**R$ 0,50.**",
+            value="**R$ 0,50**",
             inline=False
         )
 
