@@ -1099,13 +1099,13 @@ async def publicarpasse(ctx):
         )
 
         embed.add_field(
-            name="👥 Mínimo para realização",
+            name="<:Discord_members:1558695527556849744> **QUANTIDADE MÍNIMA**",
             value="10 participantes confirmados.",
             inline=False
         )
 
         embed.add_field(
-            name="📅 Início do evento",
+            name="📅 Início do evetinto",
             value="**15/10/2026**",
             inline=False
         )
