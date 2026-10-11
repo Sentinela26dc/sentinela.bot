@@ -1128,7 +1128,10 @@ async def publicarpasse(ctx):
 
         embed = discord.Embed(
             title="<:PASSE_BOOYAH:1558634919985680454> 𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐄 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇",
-            description="<:Sentry:1558683706489708634> **EVENTO SENTINELA — SORTEIO PASSE BOOYAH**",
+            description="embed.set_footer(
+    text="SENTINELA • EVENTOS",
+    icon_url="https://cdn.discordapp.com/emojis/1558683706489708634.webp"
+)",
             color=discord.Color.gold()
         )
 
