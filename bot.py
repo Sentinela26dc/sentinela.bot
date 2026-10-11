@@ -1113,7 +1113,7 @@ async def publicarpasse(ctx):
         embed.add_field(
             name="<a:AI_Boost_crystal:1558664770473959555> BENEFÍCIO EXCLUSIVO",
             value=(
-                "**Quem impulsiona o servidor tem direito "
+                "**Impulsionadores tem direito "
                 "a 1 ticket gratuito por mês!**"
             ),
             inline=False
