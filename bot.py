@@ -1099,8 +1099,8 @@ async def publicarpasse(ctx):
         )
 
         embed.add_field(
-            name="👥 Participantes",
-            value="Confira as regras do evento no servidor.",
+            name="👥 Mínimo para realização",
+            value="10 participantes confirmados.",
             inline=False
         )
 
@@ -1122,8 +1122,7 @@ async def publicarpasse(ctx):
         embed.add_field(
             name="<a:check_discord:1558664467594612816> ATENÇÃO, SENTINELAS!",
             value=(
-                "**Confira as informações e as regras oficiais "
-                "antes de participar.**"
+                "**Se o número mínimo de participantes não for atingido até o início do evento, os participantes que pagaram receberão o reembolso.**"
             ),
             inline=False
         )
