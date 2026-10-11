@@ -1,4 +1,3 @@
-
 import os
 import asyncio
 import discord
@@ -366,7 +365,6 @@ class RecrutamentoView(discord.ui.View):
             return
 
         try:
-            # Adiciona Sentinela e remove recruta.
             await membro.add_roles(
                 cargo_membro,
                 reason="Recrutamento aprovado."
@@ -516,7 +514,6 @@ async def criar_recrutamento(membro):
     try:
         topico = f"recrutamento_usuario:{membro.id}"
 
-        # Reaproveita um canal aberto, se já existir.
         for canal_existente in guild.text_channels:
             if (
                 canal_existente.topic
@@ -1126,24 +1123,50 @@ async def publicarpasse(ctx):
         if not isinstance(canal, discord.TextChannel):
             await ctx.send("❌ O canal não é um canal de texto.")
             return
-        # Envia a imagem primeiro.
+
         await canal.send(URL_IMAGEM_PASSE)
-        # Envia o texto logo abaixo.
+
         embed = discord.Embed(
-            title=f"{EMOJI_GUARDIOES} 𝐆𝐔𝐀𝐑𝐃𝐈𝐎𝐄𝐒 𝐃𝐎 𝐎𝐄𝐒𝐓𝐄",
-            description=(
-                "🦁 **EVENTO SENTINELA — PASSE BOOYAH**\n\n"
-                "🎮 **Prêmio:** Passe Booyah — Guardiões do Oeste\n\n"
-                "📢 Confira as regras e as informações oficiais "
-                "do evento antes de participar.\n\n"
-                "Boa sorte a todos os Sentinelas!"
-            ),
+            title="<:PASSE_BOOYAH:1558634919985680454> **PASSE-GUARDIOES DO OESTE**",
+            description="**🦁 EVENTO SENTINELA — SORTEIO PASSE BOOYAH**",
             color=discord.Color.gold()
         )
-        embed.set_footer(text="SENTINELA • EVENTOS")
+
+        embed.add_field(
+            name="🎟️ **Inscrição**",
+            value="**R$ 0,50 por pessoa.**",
+            inline=False
+        )
+
+        embed.add_field(
+            name="👥 **Mínimo de participantes**",
+            value="**Mínimo de 10 participantes confirmados para realizar o sorteio.**",
+            inline=False
+        )
+
+        embed.add_field(
+            name="📅 **Início do evento**",
+            value="**15/10/2026**",
+            inline=False
+        )
+
+        embed.add_field(
+            name="<:AI_Boost_crystal:1558664770473959555> **BENEFÍCIO EXCLUSIVO**",
+            value="**Quem impulsiona o servidor tem direito a 1 inscrição grátis por mês!**",
+            inline=False
+        )
+
+        embed.add_field(
+            name="<:check_discord:1558664467594612816> **ATENÇÃO, SENTINELAS!**",
+            value="**Se não alcançarmos o mínimo de 10 participantes até o início do evento, quem pagou receberá o reembolso.**",
+            inline=False
+        )
+
+        embed.set_footer(text="<:sentinela:1557941358990200852> SENTINELA • EVENTOS")
+
         await canal.send(embed=embed)
         await ctx.send(
-            f"✅ Evento publicado em {canal.mention}!"
+            f"✅ Evento publicado com sucesso em {canal.mention}!"
         )
     except discord.Forbidden:
         await ctx.send(
@@ -1172,7 +1195,6 @@ async def publicarpasse_error(ctx, error):
 
 @bot.event
 async def on_member_join(membro):
-    # Dá o cargo de recruta para quem acabou de entrar.
     cargo_recruta = discord.utils.get(
         membro.guild.roles,
         name=CARGO_RECRUTA
@@ -1195,7 +1217,6 @@ async def on_member_join(membro):
             f"[RECRUTAMENTO] Cargo de recruta dado para {membro}."
         )
 
-        # Cria o canal privado e publica os botões.
         await criar_recrutamento(membro)
 
     except discord.Forbidden:
@@ -1232,12 +1253,9 @@ async def on_member_update(before, after):
         and cargo_membro in after.roles
     )
 
-    # Se o cargo de recruta for dado manualmente,
-    # também prepara o canal de recrutamento.
     if recebeu_recruta:
         await criar_recrutamento(after)
 
-    # Envia boas-vindas quando alguém recebe o cargo Sentinela.
     if recebeu_membro:
         canal_boas_vindas = after.guild.get_channel(
             CANAL_BOAS_VINDAS_ID
