@@ -1121,14 +1121,11 @@ async def publicarpasse(ctx):
                 CANAL_PASSE_BOOYAAH_ID
             )
         if not isinstance(canal, discord.TextChannel):
-            await ctx.send("❌ O canal não é um canal de texto.")
             return
 
-        await canal.send(URL_IMAGEM_PASSE)
-
         embed = discord.Embed(
-            title="<:PASSE_BOOYAH:1558634919985680454> **PASSE-GUARDIOES DO OESTE**",
-            description="**🦁 EVENTO SENTINELA — SORTEIO PASSE BOOYAH**",
+            title="<:PASSE_BOOYAH:1558634919985680454> **𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐄 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇**",
+            description="**🦁 EVENTO SENTINELA**",
             color=discord.Color.gold()
         )
 
@@ -1139,7 +1136,7 @@ async def publicarpasse(ctx):
         )
 
         embed.add_field(
-            name="👥 **Mínimo de participantes**",
+            name="👥 **Meta de participantes**",
             value="**Mínimo de 10 participantes confirmados para realizar o sorteio.**",
             inline=False
         )
@@ -1151,32 +1148,30 @@ async def publicarpasse(ctx):
         )
 
         embed.add_field(
-            name="<:AI_Boost_crystal:1558664770473959555> **BENEFÍCIO EXCLUSIVO**",
+            name="<a:AI_Boost_crystal:1558664770473959555> **BENEFÍCIO EXCLUSIVO**",
             value="**Quem impulsiona o servidor tem direito a 1 inscrição grátis por mês!**",
             inline=False
         )
 
         embed.add_field(
             name="<:check_discord:1558664467594612816> **ATENÇÃO, SENTINELAS!**",
-            value="**Se não alcançarmos o mínimo de 10 participantes até o início do evento, quem pagou receberá o reembolso.**",
+            value=(
+                "**Se a meta de 10 participantes não for alcançada, o sorteio será "
+                "adiado ou cancelado. Quem pagou receberá o reembolso.**"
+            ),
             inline=False
         )
 
+        embed.set_image(url=URL_IMAGEM_PASSE)
         embed.set_footer(text="<:sentinela:1557941358990200852> SENTINELA • EVENTOS")
 
         await canal.send(embed=embed)
-        await ctx.send(
-            f"✅ Evento publicado com sucesso em {canal.mention}!"
-        )
+
     except discord.Forbidden:
-        await ctx.send(
-            "❌ O bot não tem permissão para publicar nesse canal."
-        )
+        print("[PUBLICARPASSE] Sem permissão para publicar no canal.")
+
     except discord.HTTPException as erro:
         print(f"[ERRO PUBLICAR PASSE] {erro!r}")
-        await ctx.send(
-            "❌ Falha ao publicar. Confira os logs do Railway."
-        )
 
 
 @publicarpasse.error
