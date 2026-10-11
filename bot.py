@@ -1154,7 +1154,7 @@ async def publicarpasse(ctx):
         )
 
         embed.add_field(
-            name="<:check_discord:1558664467594612816> **ATENÇÃO, SENTINELAS!**",
+            name="<a:check_discord:1558664467594612816> **ATENÇÃO, SENTINELAS!**",
             value=(
                 "**Se a meta de 10 participantes não for alcançada, o sorteio será "
                 "adiado ou cancelado. Quem pagou receberá o reembolso.**"
