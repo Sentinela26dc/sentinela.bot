@@ -1116,7 +1116,7 @@ async def publicarpasse(ctx):
             ),
             value=(
                   "Quando chegar a hora de realizar o pagamento, "
-                "um   <:50224modorange:1559028057912643615> "
+                "um    <:50224modorange:1559028057912643615> "
                 "**administrador ou moderador** da Sentinela irá atender você, "
                          "explicar como funciona o processo, enviar a chave "
                 "Pix <:7406pix:1559018337558863933>   e orientar cada "
