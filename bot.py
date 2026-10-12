@@ -1118,7 +1118,7 @@ async def publicarpasse(ctx):
                 "Quando chegar a hora de realizar o pagamento, "
                 "um <:50224modorange:1559028057912643615> "
                 "**administrador** da Sentinela irá atender você, "
-                "explicar como funciona o processo e orientar cada "
+                "explicar como funciona o processo, enviar a chave pix e orientar cada "
                 "etapa da compra dos tickets.\n\n"
                 "📢 Em caso de dúvidas, entre em contato com a "
                 "administração antes de realizar qualquer pagamento."
