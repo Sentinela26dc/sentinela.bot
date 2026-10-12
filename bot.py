@@ -1099,7 +1099,7 @@ async def publicarpasse(ctx):
                 "<a:999284cash:1559012499016261713> **R$ 0,50**. "
                 "Cada participante pode adquirir até **6 tickets** "
                 "para participar do sorteio do "
-                "<:PASSE_BOOYAH:1558634919985680454> Passe Booyah!\n\n"
+                " **Passe Booyah!** \n\n"
                 "**OBS:** A compra de mais tickets aumenta a tua "
                 "chance, mas não garante a vitória."
             ),
