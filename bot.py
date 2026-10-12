@@ -1112,7 +1112,7 @@ async def publicarpasse(ctx):
             name=(
                 "<:7406pix:1559018337558863933> "
                 "<a:207799mastercard:1559019335492706324> "
-                "**COMO ADQUIRIR OS TICKETS**"
+                "  **COMO ADQUIRIR OS TICKETS**"
             ),
             value=(
                   "Quando chegar a hora de realizar o pagamento, "
