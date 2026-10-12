@@ -1091,6 +1091,7 @@ async def publicarpasse(ctx):
             color=discord.Color.gold()
         )
 
+        
         # TICKET
         embed.add_field(
             name="<:8916shoppingcart:1559026055170367508> 𝐓𝐈𝐂𝐊𝐄𝐓",
@@ -1111,14 +1112,14 @@ async def publicarpasse(ctx):
             name=(
                 "<:7406pix:1559018337558863933> "
                 "<a:207799mastercard:1559019335492706324> "
-                "COMO REALIZAR A INSCRIÇÃO"
+                "**COMO ADQUIRIR OS TICKETS**"
             ),
             value=(
                 "Quando chegar a hora de realizar o pagamento, "
                 "um <:Discord_Certified_Moderator2:1558664913419767808> "
                 "**administrador** da Sentinela irá atender você, "
                 "explicar como funciona o processo e orientar cada "
-                "etapa da inscrição.\n\n"
+                "etapa da compra dos tickets.\n\n"
                 "📢 Em caso de dúvidas, entre em contato com a "
                 "administração antes de realizar qualquer pagamento."
             ),
