@@ -1115,7 +1115,7 @@ async def publicarpasse(ctx):
             ),
             value=(
                 "Quando chegar a hora de realizar o pagamento, "
-                "um <a:Discord_Certified_Moderator2:1558664913419767808> "
+                "um <:Discord_Certified_Moderator2:1558664913419767808> "
                 "**administrador** da Sentinela irá atender você, "
                 "explicar como funciona o processo e orientar cada "
                 "etapa da inscrição.\n\n"
