@@ -1093,7 +1093,7 @@ async def publicarpasse(ctx):
 
         # TICKET
         embed.add_field(
-            name="🎟️ Ticket",
+            name="<:8916shoppingcart:1559026055170367508> 𝐓𝐈𝐂𝐊𝐄𝐓",
             value=(
                 "Cada ticket custa apenas "
                 "<a:999284cash:1559012499016261713> **R$ 0,50**. "
