@@ -1058,7 +1058,6 @@ async def listaremojis(ctx):
     for inicio in range(0, len(texto), 1800):
         await ctx.send(texto[inicio:inicio + 1800])
 
-
 # ==========================================
 # PUBLICAR ANUNCIO DO PASSE BOOYAH
 # ==========================================
@@ -1092,42 +1091,85 @@ async def publicarpasse(ctx):
             color=discord.Color.gold()
         )
 
+        # TICKET
         embed.add_field(
-            name="🎟️ Inscrição",
-            value="**R$ 0,50**",
+            name="🎟️ Ticket",
+            value=(
+                "Cada ticket custa apenas "
+                "<a:999284cash:1559012499016261713> **R$ 0,50**. "
+                "Cada participante pode adquirir até **6 tickets** "
+                "para participar do sorteio do "
+                "<:PASSE_BOOYAH:1558634919985680454> Passe Booyah!\n\n"
+                "**OBS:** A compra de mais tickets aumenta a tua "
+                "chance, mas não garante a vitória."
+            ),
             inline=False
         )
 
+        # COMO REALIZAR A INSCRICAO
         embed.add_field(
-            name="<:Discord_members:1558695527556849744> **QUANTIDADE MÍNIMA**",
-            value="10 participantes confirmados.",
+            name=(
+                "<:7406pix:1559018337558863933> "
+                "<a:207799mastercard:1559019335492706324> "
+                "COMO REALIZAR A INSCRIÇÃO"
+            ),
+            value=(
+                "Quando chegar a hora de realizar o pagamento, "
+                "um <a:Discord_Certified_Moderator2:1558664913419767808> "
+                "**administrador** da Sentinela irá atender você, "
+                "explicar como funciona o processo e orientar cada "
+                "etapa da inscrição.\n\n"
+                "📢 Em caso de dúvidas, entre em contato com a "
+                "administração antes de realizar qualquer pagamento."
+            ),
             inline=False
         )
 
+        # QUANTIDADE MINIMA
         embed.add_field(
-            name="📅 Início do evetinto",
+            name=(
+                "<:Discord_members:1558695527556849744> "
+                "**QUANTIDADE MÍNIMA**"
+            ),
+            value="50 participantes confirmados.",
+            inline=False
+        )
+
+        # DATA DO EVENTO
+        embed.add_field(
+            name="📅 Início do evento",
             value="**15/10/2026**",
             inline=False
         )
 
+        # BENEFICIO EXCLUSIVO
         embed.add_field(
-            name="<a:AI_Boost_crystal:1558664770473959555> BENEFÍCIO EXCLUSIVO",
+            name=(
+                "<a:AI_Boost_crystal:1558664770473959555> "
+                "BENEFÍCIO EXCLUSIVO"
+            ),
             value=(
-                "**Impulsionadores tem direito "
+                "**Impulsionadores têm direito "
                 "a 1 ticket gratuito por mês!**"
             ),
             inline=False
         )
 
+        # AVISO DE REEMBOLSO
         embed.add_field(
-            name="<a:check_discord:1558664467594612816> ATENÇÃO, SENTINELAS!",
+            name=(
+                "<a:check_discord:1558664467594612816> "
+                "ATENÇÃO, SENTINELAS!"
+            ),
             value=(
-                "**Se o número mínimo de participantes não for atingido até o início do evento, os participantes que pagaram receberão o reembolso.**"
+                "**Se o número mínimo de participantes não for "
+                "atingido até o início do evento, os participantes "
+                "que pagaram receberão o reembolso.**"
             ),
             inline=False
         )
 
-        # O emoji aparece como icone do rodape.
+        # RODAPE
         embed.set_footer(
             text="SENTINELA • EVENTOS",
             icon_url=(
@@ -1158,7 +1200,6 @@ async def publicarpasse_error(ctx, error):
         )
     else:
         print(f"[ERRO COMANDO PASSE] {error!r}")
-
 
 # ==========================================
 # EVENTOS DE MEMBROS
