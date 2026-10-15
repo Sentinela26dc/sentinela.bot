@@ -1,4 +1,3 @@
-
 import os
 import asyncio
 import discord
@@ -1077,8 +1076,6 @@ async def publicarpasse(ctx):
             await ctx.send("❌ O canal não é um canal de texto.")
             return
 
-        await canal.send(URL_IMAGEM_PASSE)
-
         embed = discord.Embed(
             title=(
                 "<:PASSE_BOOYAH:1558634919985680454> "
@@ -1091,7 +1088,9 @@ async def publicarpasse(ctx):
             color=discord.Color.gold()
         )
 
-        
+        # Adiciona a imagem direto DENTRO do embed (ela vai ficar logo acima do TICKET, igualzinho na foto 1)
+        embed.set_image(url=URL_IMAGEM_PASSE)
+         
         # TICKET
         embed.add_field(
             name="<:8916shoppingcart:1559026055170367508> 𝐓𝐈𝐂𝐊𝐄𝐓",
@@ -1115,227 +1114,28 @@ async def publicarpasse(ctx):
                 "  **COMO ADQUIRIR OS TICKETS**"
             ),
             value=(
-                  "Quando chegar a hora de realizar o pagamento, "
+                "Quando chegar a hora de realizar o pagamento, "
                 "um    <:50224modorange:1559028057912643615> "
                 "**administrador ou moderador** da Sentinela irá atender você, "
-                         "explicar como funciona o processo, enviar a chave "
+                "explicar como funciona o processo, enviar a chave "
                 "Pix <:7406pix:1559018337558863933>   e orientar cada "
                 "etapa da compra dos tickets.\n\n"
                 "📢 Em caso de dúvidas, entre em contato com a "
-                "administração antes de realizar qualquer pagamento."
-                
+                "administração antes de realizar qualquer pagamento!"
             ),
             inline=False
         )
 
-        # QUANTIDADE MINIMA
-        embed.add_field(
-            name=(
-                "<:Discord_members:1558695527556849744> "
-                "**QUANTIDADE MÍNIMA**"
-            ),
-            value="50 participantes confirmados.",
-            inline=False
-        )
-
-        # DATA DO EVENTO
-        embed.add_field(
-            name="📅 Início do evento",
-            value="**15/10/2026**",
-            inline=False
-        )
-
-        # BENEFICIO EXCLUSIVO
-        embed.add_field(
-            name=(
-                "<a:AI_Boost_crystal:1558664770473959555> "
-                "BENEFÍCIO EXCLUSIVO"
-            ),
-            value=(
-                "**Impulsionadores têm direito "
-                "a 1 ticket gratuito por mês!**"
-            ),
-            inline=False
-        )
-
-        # AVISO DE REEMBOLSO
-        embed.add_field(
-            name=(
-                "<a:check_discord:1558664467594612816> "
-                "ATENÇÃO, SENTINELAS!"
-            ),
-            value=(
-                "**Se o número mínimo de participantes não for "
-                "atingido até o início do evento, os participantes "
-                "que pagaram receberão o reembolso.**"
-            ),
-            inline=False
-        )
-
-        # RODAPE
-        embed.set_footer(
-            text="SENTINELA • EVENTOS",
-            icon_url=(
-                "https://cdn.discordapp.com/emojis/"
-                "1558683706489708634.webp"
-            )
-        )
-
+        # Envia o embed com a imagem já embutida nele de forma limpa
         await canal.send(embed=embed)
+        await ctx.send("✅ Anúncio do Passe Booyah publicado com sucesso!")
 
-    except discord.Forbidden:
-        await ctx.send(
-            "❌ O bot não tem permissão para publicar nesse canal."
-        )
-
-    except discord.HTTPException as erro:
-        print(f"[ERRO PUBLICAR PASSE] {erro!r}")
-        await ctx.send(
-            "❌ Falha ao publicar. Confira os logs do Railway."
-        )
-
-
-@publicarpasse.error
-async def publicarpasse_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        await ctx.send(
-            "❌ Você precisa ser administrador para publicar."
-        )
-    else:
-        print(f"[ERRO COMANDO PASSE] {error!r}")
+    except Exception as erro:
+        print(f"[ERRO PUBLICAR PASSE] {erro}")
+        await ctx.send(f"❌ Ocorreu um erro ao publicar o passe: {erro}")
 
 # ==========================================
-# EVENTOS DE MEMBROS
+# INICIAR BOT
 # ==========================================
 
-@bot.event
-async def on_member_join(membro):
-    cargo_recruta = discord.utils.get(
-        membro.guild.roles,
-        name=CARGO_RECRUTA
-    )
-
-    if cargo_recruta is None:
-        print(
-            f"[RECRUTAMENTO] Cargo não encontrado: "
-            f"{CARGO_RECRUTA}"
-        )
-        return
-
-    try:
-        await membro.add_roles(
-            cargo_recruta,
-            reason="Novo membro entrou no servidor."
-        )
-
-        print(
-            f"[RECRUTAMENTO] Cargo de recruta dado para {membro}."
-        )
-
-        await criar_recrutamento(membro)
-
-    except discord.Forbidden:
-        print(
-            "[RECRUTAMENTO] Sem permissão para dar o cargo. "
-            "Confira Gerenciar cargos e a hierarquia do bot."
-        )
-
-    except discord.HTTPException as erro:
-        print(f"[ERRO AO RECEBER NOVO MEMBRO] {erro}")
-
-
-@bot.event
-async def on_member_update(before, after):
-    cargo_recruta = discord.utils.get(
-        after.guild.roles,
-        name=CARGO_RECRUTA
-    )
-
-    cargo_membro = discord.utils.get(
-        after.guild.roles,
-        name=CARGO_MEMBRO
-    )
-
-    recebeu_recruta = (
-        cargo_recruta is not None
-        and cargo_recruta not in before.roles
-        and cargo_recruta in after.roles
-    )
-
-    recebeu_membro = (
-        cargo_membro is not None
-        and cargo_membro not in before.roles
-        and cargo_membro in after.roles
-    )
-
-    if recebeu_recruta:
-        await criar_recrutamento(after)
-
-    if recebeu_membro:
-        canal_boas_vindas = after.guild.get_channel(
-            CANAL_BOAS_VINDAS_ID
-        )
-
-        canal_regras = after.guild.get_channel(
-            CANAL_REGRAS_ID
-        )
-
-        mencao_regras = (
-            canal_regras.mention
-            if isinstance(canal_regras, discord.TextChannel)
-            else f"<#{CANAL_REGRAS_ID}>"
-        )
-
-        if isinstance(canal_boas_vindas, discord.TextChannel):
-            embed = discord.Embed(
-                title="🦁 NOVO SENTINELA NA ÁREA!",
-                description=(
-                    f"Salve, {after.mention}! Seja muito bem-vindo "
-                    "à família Sentinela!\n\n"
-                    "Agora você faz parte da tropa. "
-                    "Chegue junto, conheça a galera e participe "
-                    "das atividades da guilda.\n\n"
-                    f"📚 Dá uma conferida em {mencao_regras} "
-                    "para conhecer as regras da nossa comunidade."
-                ),
-                color=discord.Color.gold()
-            )
-
-            embed.set_image(url=IMAGEM_BOAS_VINDAS)
-            embed.set_footer(
-                text="SENTINELA • JUNTOS SOMOS MAIS FORTES"
-            )
-
-            try:
-                await canal_boas_vindas.send(embed=embed)
-            except discord.HTTPException as erro:
-                print(f"[ERRO BOAS-VINDAS] {erro}")
-
-
-# ==========================================
-# INICIALIZACAO
-# ==========================================
-
-@bot.event
-async def on_ready():
-    print(f"🦁 Sentinela conectado como {bot.user}")
-    print("[SENTINELA] Bot pronto para receber interações.")
-
-
-async def main():
-    if not TOKEN:
-        print(
-            "ERRO: defina a variável de ambiente DISCORD_TOKEN."
-        )
-        return
-
-    async with bot:
-        bot.add_view(FilaView())
-        bot.add_view(RecrutamentoView())
-        bot.add_view(ConfirmarRecusaView())
-
-        await bot.start(TOKEN)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+bot.run(TOKEN)
