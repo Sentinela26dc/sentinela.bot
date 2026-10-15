@@ -1088,9 +1088,6 @@ async def publicarpasse(ctx):
             color=discord.Color.gold()
         )
 
-        # Adiciona a imagem direto DENTRO do embed (ela vai ficar logo acima do TICKET, igualzinho na foto 1)
-        embed.set_image(url=URL_IMAGEM_PASSE)
-         
         # TICKET
         embed.add_field(
             name="<:8916shoppingcart:1559026055170367508> 𝐓𝐈𝐂𝐊𝐄𝐓",
@@ -1126,8 +1123,9 @@ async def publicarpasse(ctx):
             inline=False
         )
 
-        # Envia o embed com a imagem já embutida nele de forma limpa
-        await canal.send(embed=embed)
+        # Enviamos a URL da imagem no 'content' e o embed logo abaixo na mesma mensagem.
+        # O Discord exibe a imagem em cima e o embed colado logo embaixo perfeitamente!
+        await canal.send(content=URL_IMAGEM_PASSE, embed=embed)
         await ctx.send("✅ Anúncio do Passe Booyah publicado com sucesso!")
 
     except Exception as erro:
