@@ -1,3 +1,8 @@
+@bot.event
+async def on_ready():
+    print(f"🤖 Bot conectado com sucesso como: {bot.user.name} (ID: {bot.user.id})")
+    print("Pronto para receber comandos!")
+
 import os
 import asyncio
 import io
