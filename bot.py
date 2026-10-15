@@ -1,12 +1,5 @@
-@bot.event
-async def on_ready():
-    print(f"🤖 Bot conectado com sucesso como: {bot.user.name} (ID: {bot.user.id})")
-    print("Pronto para receber comandos!")
-
 import os
 import asyncio
-import io
-import aiohttp
 import discord
 from discord.ext import commands
 
@@ -427,4 +420,722 @@ class RecrutamentoView(discord.ui.View):
 
 
 # ==========================================
-# MENSAGEM
+# MENSAGEM DE RECRUTAMENTO
+# ==========================================
+
+async def garantir_mensagem_recrutamento(canal, membro):
+    embed = discord.Embed(
+        title="🦁 𝐒𝐄𝐍𝐓𝐈𝐍𝐄𝐋𝐀 | 𝐑𝐄𝐂𝐑𝐔𝐓𝐀𝐌𝐄𝐍𝐓𝐎",
+        description=(
+            f"Salve, {membro.mention}!\n\n"
+            "Este é o seu canal de recrutamento na Sentinela.\n\n"
+            "Aguarde um administrador ou moderador "
+            "para avaliar seu recrutamento.\n\n"
+            "🦁 Boa sorte!"
+        ),
+        color=discord.Color.gold()
+    )
+
+    embed.set_footer(text="SENTINELA • RECRUTAMENTO")
+
+    moderador = canal.guild.get_role(CARGO_MODERADOR_ID)
+    adm = canal.guild.get_role(CARGO_ADM_ID)
+
+    mencoes = " ".join(
+        cargo.mention
+        for cargo in (moderador, adm)
+        if cargo is not None
+    )
+
+    async for mensagem in canal.history(limit=20):
+        if mensagem.author == bot.user and mensagem.embeds:
+            await mensagem.edit(
+                content=mencoes or None,
+                embed=embed,
+                view=RecrutamentoView(),
+                allowed_mentions=discord.AllowedMentions(
+                    roles=True, users=True
+                )
+            )
+            return
+
+    await canal.send(
+        content=mencoes or None,
+        embed=embed,
+        view=RecrutamentoView(),
+        allowed_mentions=discord.AllowedMentions(
+            roles=True, users=True
+        )
+    )
+
+
+async def criar_recrutamento(membro):
+    guild = membro.guild
+
+    if membro.id in recrutamentos_em_criacao:
+        return
+
+    recrutamentos_em_criacao.add(membro.id)
+
+    try:
+        topico = f"recrutamento_usuario:{membro.id}"
+
+        for canal_existente in guild.text_channels:
+            if (
+                canal_existente.topic
+                and topico in canal_existente.topic
+                and not recrutamento_encerrado(canal_existente)
+            ):
+                await garantir_mensagem_recrutamento(
+                    canal_existente, membro
+                )
+                return
+
+        categoria = guild.get_channel(CATEGORIA_RECRUTAMENTO_ID)
+
+        permissoes = {
+            guild.default_role: discord.PermissionOverwrite(
+                view_channel=False
+            ),
+            membro: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True
+            )
+        }
+
+        for cargo_id in (CARGO_MODERADOR_ID, CARGO_ADM_ID):
+            cargo = guild.get_role(cargo_id)
+            if cargo:
+                permissoes[cargo] = discord.PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    read_message_history=True
+                )
+
+        if guild.me:
+            permissoes[guild.me] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                manage_channels=True
+            )
+
+        nome_canal = f"recrutamento-{membro.name}".lower()
+        nome_canal = nome_canal.replace(" ", "-")[:90]
+
+        canal = await guild.create_text_channel(
+            name=nome_canal,
+            category=(
+                categoria
+                if isinstance(categoria, discord.CategoryChannel)
+                else None
+            ),
+            overwrites=permissoes,
+            topic=topico,
+            reason="Novo recrutamento Sentinela."
+        )
+
+        await garantir_mensagem_recrutamento(canal, membro)
+        print(f"[RECRUTAMENTO] Canal criado para {membro}.")
+
+    except discord.Forbidden:
+        print(
+            "[RECRUTAMENTO] Sem permissão para criar canal. "
+            "Confira Gerenciar canais."
+        )
+
+    except discord.HTTPException as erro:
+        print(f"[ERRO CRIAR RECRUTAMENTO] {erro}")
+
+    finally:
+        recrutamentos_em_criacao.discard(membro.id)
+
+
+# ==========================================
+# FILA DA GUERRA DE GUILDA
+# ==========================================
+
+def criar_embed_fila(guild_id):
+    fila = obter_fila(guild_id)
+
+    embed = discord.Embed(
+        title="𝐆𝐔𝐄𝐑𝐑𝐀 𝐃𝐄 𝐆𝐔𝐈𝐋𝐃𝐀",
+        description="**FORME SEU SQUAD E AMASSE GERAL NA GUERRA!**",
+        color=discord.Color.gold()
+    )
+
+    embed.add_field(
+        name=f"{EMOJI_SQUAD} JOGADORES NA FILA",
+        value=f"**{len(fila)} / {LIMITE_FILA} jogadores**",
+        inline=False
+    )
+
+    if fila:
+        jogadores = []
+
+        for indice, jogador in enumerate(fila, start=1):
+            jogadores.append(
+                f"**{indice}.** <@{jogador['id']}>\n"
+                f"{jogador['emoji']} **{jogador['funcao']}**"
+            )
+
+        embed.add_field(
+            name="\u200b",
+            value="\n\n".join(jogadores),
+            inline=False
+        )
+    else:
+        embed.add_field(
+            name="\u200b",
+            value="A fila está vazia. Entre e forme seu squad!",
+            inline=False
+        )
+
+    embed.set_footer(text="SENTINELA • GUERRA DE GUILDA")
+    embed.set_thumbnail(url=EMOJI_SENTINELA_URL)
+
+    return embed
+
+
+async def atualizar_mensagem_fila(guild):
+    dados = mensagens_fila.get(guild.id)
+
+    if not dados:
+        return
+
+    canal_id, mensagem_id = dados
+    canal = guild.get_channel(canal_id)
+
+    if not isinstance(canal, discord.TextChannel):
+        return
+
+    try:
+        mensagem = await canal.fetch_message(mensagem_id)
+        await mensagem.edit(
+            embed=criar_embed_fila(guild.id),
+            view=FilaView()
+        )
+
+    except discord.NotFound:
+        print("[FILA] A mensagem da fila foi apagada.")
+
+    except discord.Forbidden:
+        print("[FILA] Sem permissão para editar a mensagem.")
+
+    except discord.HTTPException as erro:
+        print(f"[ERRO ATUALIZAR FILA] {erro}")
+
+
+async def criar_canal_squad(guild, fila):
+    canal_anterior_id = canais_squad.get(guild.id)
+
+    if canal_anterior_id:
+        canal_anterior = guild.get_channel(canal_anterior_id)
+        if canal_anterior:
+            try:
+                await canal_anterior.delete(
+                    reason="Preparando um novo squad."
+                )
+            except discord.HTTPException as erro:
+                print(f"[ERRO EXCLUIR CANAL ANTERIOR] {erro}")
+
+    permissoes = {
+        guild.default_role: discord.PermissionOverwrite(
+            view_channel=False
+        )
+    }
+
+    for jogador in fila:
+        membro = guild.get_member(jogador["id"])
+        if membro:
+            permissoes[membro] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True
+            )
+
+    for cargo_id in (CARGO_MODERADOR_ID, CARGO_ADM_ID):
+        cargo = guild.get_role(cargo_id)
+        if cargo:
+            permissoes[cargo] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True
+            )
+
+    if guild.me:
+        permissoes[guild.me] = discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            read_message_history=True,
+            manage_channels=True
+        )
+
+    canal = await guild.create_text_channel(
+        name="🔒・squad-sentinela",
+        overwrites=permissoes,
+        reason="Fila da Guerra de Guilda completa."
+    )
+
+    canais_squad[guild.id] = canal.id
+
+    mencoes = "\n".join(
+        f"<@{jogador['id']}> — {jogador['emoji']} "
+        f"**{jogador['funcao']}**"
+        for jogador in fila
+    )
+
+    await canal.send(
+        "🦁 **SQUAD COMPLETO!**\n\n"
+        f"{mencoes}\n\n"
+        "Organizem-se para a Guerra de Guilda e boa sorte!"
+    )
+
+    return canal
+
+
+# ==========================================
+# REGISTRAR JOGADOR
+# ==========================================
+
+async def registrar_jogador(interaction, funcao, emoji):
+    guild = interaction.guild
+
+    if guild is None:
+        await interaction.response.send_message(
+            "Não consegui identificar o servidor.",
+            ephemeral=True
+        )
+        return
+
+    await interaction.response.defer(ephemeral=True, thinking=True)
+
+    fila = obter_fila(guild.id)
+    membro_id = interaction.user.id
+
+    if any(j["id"] == membro_id for j in fila):
+        await interaction.edit_original_response(
+            content="⚠️ Você já está na fila!",
+            view=None
+        )
+        return
+
+    if len(fila) >= LIMITE_FILA:
+        await interaction.edit_original_response(
+            content="❌ A fila já está completa!",
+            view=None
+        )
+        return
+
+    fila.append({
+        "id": membro_id,
+        "funcao": funcao,
+        "emoji": str(emoji)
+    })
+
+    await interaction.edit_original_response(
+        content=f"✅ Você entrou na fila como **{funcao}**!",
+        view=None
+    )
+
+    try:
+        await atualizar_mensagem_fila(guild)
+
+        if (
+            len(fila) == LIMITE_FILA
+            and guild.id not in squads_em_criacao
+        ):
+            squads_em_criacao.add(guild.id)
+            try:
+                await criar_canal_squad(guild, list(fila))
+            finally:
+                squads_em_criacao.discard(guild.id)
+
+    except Exception as erro:
+        print(
+            f"[ERRO PROCESSAMENTO FILA] "
+            f"{type(erro).__name__}: {erro!r}"
+        )
+
+
+# ==========================================
+# ESCOLHA DE FUNCAO
+# ==========================================
+
+class EscolherFuncaoView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+
+    @discord.ui.button(
+        label="Rushador",
+        emoji=EMOJI_RUSHADOR,
+        style=discord.ButtonStyle.secondary,
+        row=0
+    )
+    async def rushador(self, interaction, button):
+        await registrar_jogador(
+            interaction, "Rushador", EMOJI_RUSHADOR
+        )
+
+    @discord.ui.button(
+        label="Fuzileiro",
+        emoji=EMOJI_FUZILEIRO,
+        style=discord.ButtonStyle.secondary,
+        row=0
+    )
+    async def fuzileiro(self, interaction, button):
+        await registrar_jogador(
+            interaction, "Fuzileiro", EMOJI_FUZILEIRO
+        )
+
+    @discord.ui.button(
+        label="Atirador",
+        emoji=EMOJI_ATIRADOR,
+        style=discord.ButtonStyle.secondary,
+        row=1
+    )
+    async def atirador(self, interaction, button):
+        await registrar_jogador(
+            interaction, "Atirador", EMOJI_ATIRADOR
+        )
+
+    @discord.ui.button(
+        label="Suporte",
+        emoji=EMOJI_SUPORTE,
+        style=discord.ButtonStyle.secondary,
+        row=1
+    )
+    async def suporte(self, interaction, button):
+        await registrar_jogador(
+            interaction, "Suporte", EMOJI_SUPORTE
+        )
+
+    @discord.ui.button(
+        label="Granadeiro",
+        emoji=EMOJI_GRANADEIRO,
+        style=discord.ButtonStyle.secondary,
+        row=1
+    )
+    async def granadeiro(self, interaction, button):
+        await registrar_jogador(
+            interaction, "Granadeiro", EMOJI_GRANADEIRO
+        )
+
+
+# ==========================================
+# BOTOES PRINCIPAIS DA FILA
+# ==========================================
+
+class FilaView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="ENTRAR NA FILA",
+        emoji=EMOJI_ENTRAR,
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_entrar_fila"
+    )
+    async def entrar(self, interaction, button):
+        try:
+            guild = interaction.guild
+
+            if guild is None:
+                await interaction.response.send_message(
+                    "❌ Esse botão só funciona no servidor.",
+                    ephemeral=True
+                )
+                return
+
+            fila = obter_fila(guild.id)
+            membro_id = interaction.user.id
+
+            if any(j["id"] == membro_id for j in fila):
+                await interaction.response.send_message(
+                    "⚠️ Você já está na fila!",
+                    ephemeral=True
+                )
+                return
+
+            if len(fila) >= LIMITE_FILA:
+                await interaction.response.send_message(
+                    "❌ A fila já está completa!",
+                    ephemeral=True
+                )
+                return
+
+            await interaction.response.send_message(
+                content=(
+                    "**🎮 ESCOLHA SUA FUNÇÃO**\n"
+                    "Selecione sua função para a Guerra de Guilda:"
+                ),
+                view=EscolherFuncaoView(),
+                ephemeral=True
+            )
+
+            print(
+                f"[FILA] Menu enviado para {interaction.user} "
+                f"(ID {interaction.user.id})."
+            )
+
+        except Exception as erro:
+            print(
+                f"[ERRO AO ABRIR FUNCOES] "
+                f"{type(erro).__name__}: {erro!r}"
+            )
+
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(
+                        "❌ Não consegui abrir as funções. "
+                        "Tente novamente.",
+                        ephemeral=True
+                    )
+            except Exception as erro_resposta:
+                print(f"[ERRO AO RESPONDER] {erro_resposta!r}")
+
+    @discord.ui.button(
+        label="SAIR DA FILA",
+        emoji="❌",
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_sair_fila"
+    )
+    async def sair(self, interaction, button):
+        try:
+            await interaction.response.defer(
+                ephemeral=True, thinking=True
+            )
+
+            guild = interaction.guild
+
+            if guild is None:
+                await interaction.edit_original_response(
+                    content="❌ Não consegui identificar o servidor.",
+                    view=None
+                )
+                return
+
+            fila = obter_fila(guild.id)
+            membro_id = interaction.user.id
+
+            indice = next(
+                (
+                    i for i, jogador in enumerate(fila)
+                    if jogador["id"] == membro_id
+                ),
+                None
+            )
+
+            if indice is None:
+                await interaction.edit_original_response(
+                    content="⚠️ Você não está na fila.",
+                    view=None
+                )
+                return
+
+            fila.pop(indice)
+            canal_id = canais_squad.pop(guild.id, None)
+
+            if canal_id:
+                canal = guild.get_channel(canal_id)
+                if canal:
+                    try:
+                        await canal.delete(
+                            reason="Um jogador saiu da fila."
+                        )
+                    except discord.HTTPException as erro:
+                        print(f"[ERRO EXCLUIR SQUAD] {erro}")
+
+            await atualizar_mensagem_fila(guild)
+
+            await interaction.edit_original_response(
+                content="✅ Você saiu da fila!",
+                view=None
+            )
+
+        except Exception as erro:
+            print(
+                f"[ERRO BOTAO SAIR] "
+                f"{type(erro).__name__}: {erro!r}"
+            )
+
+            try:
+                if interaction.response.is_done():
+                    await interaction.edit_original_response(
+                        content="❌ Ocorreu um erro ao sair da fila.",
+                        view=None
+                    )
+                else:
+                    await interaction.response.send_message(
+                        "❌ Ocorreu um erro ao sair da fila.",
+                        ephemeral=True
+                    )
+            except Exception as erro_resposta:
+                print(f"[ERRO RESPOSTA SAIR] {erro_resposta!r}")
+
+
+# ==========================================
+# COMANDOS
+# ==========================================
+
+@bot.command()
+async def ping(ctx):
+    await ctx.send("🏓 Pong! Sentinela está online.")
+
+
+@bot.command()
+async def sentinela(ctx):
+    await ctx.send(
+        "🦁 **SENTINELA**\n"
+        "A tropa está na área!"
+    )
+
+
+@bot.command()
+async def ajuda(ctx):
+    await ctx.send(
+        "**🦁 COMANDOS SENTINELA**\n\n"
+        "`!ping` — testa o bot\n"
+        "`!sentinela` — mensagem da guilda\n"
+        "`!ajuda` — mostra os comandos\n"
+        "`!fila` — publica a fila da Guerra de Guilda\n"
+        "`!listaremojis` — lista os emojis do servidor\n"
+        "`!publicarpasse` — publica o anúncio do passe Booyah"
+    )
+
+
+@bot.command()
+@commands.has_permissions(manage_guild=True)
+async def fila(ctx):
+    if ctx.guild is None:
+        return
+
+    mensagem = await ctx.send(
+        embed=criar_embed_fila(ctx.guild.id),
+        view=FilaView()
+    )
+
+    mensagens_fila[ctx.guild.id] = (
+        ctx.channel.id,
+        mensagem.id
+    )
+
+    print(
+        f"[FILA] Mensagem publicada. "
+        f"Canal={ctx.channel.id}, mensagem={mensagem.id}"
+    )
+
+
+@fila.error
+async def fila_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(
+            "❌ Você precisa da permissão **Gerenciar servidor** "
+            "para publicar a fila."
+        )
+    else:
+        print(f"[ERRO COMANDO FILA] {error!r}")
+
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def listaremojis(ctx):
+    linhas = [
+        f"{emoji} — `{emoji.id}`"
+        for emoji in ctx.guild.emojis
+    ]
+
+    if not linhas:
+        await ctx.send(
+            "Não encontrei emojis personalizados neste servidor."
+        )
+        return
+
+    texto = "\n".join(linhas)
+
+    for inicio in range(0, len(texto), 1800):
+        await ctx.send(texto[inicio:inicio + 1800])
+
+# ==========================================
+# PUBLICAR ANUNCIO DO PASSE BOOYAH
+# ==========================================
+
+@bot.command(name="publicarpasse")
+@commands.has_permissions(administrator=True)
+async def publicarpasse(ctx):
+    try:
+        canal = bot.get_channel(CANAL_PASSE_BOOYAAH_ID)
+
+        if canal is None:
+            canal = await bot.fetch_channel(
+                CANAL_PASSE_BOOYAAH_ID
+            )
+
+        if not isinstance(canal, discord.TextChannel):
+            await ctx.send("❌ O canal não é um canal de texto.")
+            return
+
+        embed = discord.Embed(
+            title=(
+                "<:PASSE_BOOYAH:1558634919985680454> "
+                "𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐄 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇"
+            ),
+            description=(
+                "<:Sentry:1558683706489708634> "
+                "**EVENTO SENTINELA — PASSE BOOYAH**"
+            ),
+            color=discord.Color.gold()
+        )
+
+        # Adiciona a imagem direto DENTRO do embed (ela vai ficar logo acima do TICKET, igualzinho na foto 1)
+        embed.set_image(url=URL_IMAGEM_PASSE)
+         
+        # TICKET
+        embed.add_field(
+            name="<:8916shoppingcart:1559026055170367508> 𝐓𝐈𝐂𝐊𝐄𝐓",
+            value=(
+                "Cada ticket custa apenas "
+                "<a:999284cash:1559012499016261713> **R$ 0,50**. "
+                "Cada participante pode adquirir até **6 tickets** "
+                "para participar do sorteio do "
+                " **Passe Booyah!** \n\n"
+                "**OBS:** A compra de mais tickets aumenta a tua "
+                "chance, mas não garante a vitória."
+            ),
+            inline=False
+        )
+
+        # COMO REALIZAR A INSCRICAO
+        embed.add_field(
+            name=(
+                "<:7406pix:1559018337558863933> "
+                "<a:207799mastercard:1559019335492706324> "
+                "  **COMO ADQUIRIR OS TICKETS**"
+            ),
+            value=(
+                "Quando chegar a hora de realizar o pagamento, "
+                "um    <:50224modorange:1559028057912643615> "
+                "**administrador ou moderador** da Sentinela irá atender você, "
+                "explicar como funciona o processo, enviar a chave "
+                "Pix <:7406pix:1559018337558863933>   e orientar cada "
+                "etapa da compra dos tickets.\n\n"
+                "📢 Em caso de dúvidas, entre em contato com a "
+                "administração antes de realizar qualquer pagamento!"
+            ),
+            inline=False
+        )
+
+        # Envia o embed com a imagem já embutida nele de forma limpa
+        await canal.send(embed=embed)
+        await ctx.send("✅ Anúncio do Passe Booyah publicado com sucesso!")
+
+    except Exception as erro:
+        print(f"[ERRO PUBLICAR PASSE] {erro}")
+        await ctx.send(f"❌ Ocorreu um erro ao publicar o passe: {erro}")
+
+# ==========================================
+# INICIAR BOT
+# ==========================================
+
+bot.run(TOKEN)
