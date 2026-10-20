@@ -90,6 +90,14 @@ EMOJI_DUVIDAS_PASSE = discord.PartialEmoji(
     id=1561925242258067626
 )
 
+EMOJI_VERIFICADO_PASSE = (
+    "<:VERIFICADO1525915435835457618:1561950871518978058>"
+)
+
+EMOJI_ESTRELA_PASSE = (
+    "<a:aabcyellowestrelatkf152591544208:1561953163840462952>"
+)
+
 EMOJI_CARRINHO_PASSE = (
     "<:8916shoppingcart:1559026055170367508>"
 )
@@ -1148,10 +1156,10 @@ async def publicarpasse(ctx):
         embed.add_field(
             name=(
                 f"{EMOJI_TOPICO_PASSE} "
+                f"{EMOJI_CARRINHO_PASSE} "
                 "𝐕𝐀𝐋𝐎𝐑 𝐏𝐎𝐑 𝐓𝐈𝐂𝐊𝐄𝐓"
             ),
             value=(
-                f"\n{EMOJI_CARRINHO_PASSE}\n"
                 f"{EMOJI_DINHEIRO_PASSE} "
                 "**R$ 50,00 por ticket**\n\n"
                 "Você pode adquirir **quantos tickets quiser**, "
@@ -1171,7 +1179,7 @@ async def publicarpasse(ctx):
                 "no sorteio.\n\n"
                 "Quanto mais tickets você adquirir, maiores "
                 "serão suas chances de ganhar. A vitória "
-                "não é garantida.\n"
+                "não é garantida."
             ),
             inline=False
         )
@@ -1183,10 +1191,12 @@ async def publicarpasse(ctx):
                 "𝐓𝐑𝐀𝐍𝐒𝐏𝐀𝐑𝐄̂𝐍𝐂𝐈𝐀"
             ),
             value=(
-                f"\n{EMOJI_SUPORTE_PASSE} "
+                f"{EMOJI_DUVIDAS_PASSE} "
                 "A compra será acompanhada pela administração.\n"
-                "• Sorteio transparente.\n"
-                "• Resultado divulgado no servidor.\n"
+                f"{EMOJI_VERIFICADO_PASSE} "
+                "Sorteio transparente.\n"
+                f"{EMOJI_ESTRELA_PASSE} "
+                "Resultado divulgado no servidor."
             ),
             inline=False
         )
@@ -1198,14 +1208,14 @@ async def publicarpasse(ctx):
                 "𝐂𝐎𝐌𝐎 𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐑"
             ),
             value=(
-                f"\n{EMOJI_TICKET_PASSE} "
+                f"{EMOJI_TICKET_PASSE} "
                 "**Abra um ticket** e entre em contato com a "
                 "equipe da Sentinela para receber as orientações "
                 "sobre a participação.\n\n"
                 f"{EMOJI_PIX_PASSE} "
                 f"{EMOJI_MASTERCARD_PASSE}\n\n"
                 f"{EMOJI_DUVIDAS_PASSE} "
-                "### **EM CASO DE DÚVIDAS**\n"
+                "**𝐄𝐌 𝐂𝐀𝐒𝐎 𝐃𝐄 𝐃𝐔́𝐕𝐈𝐃𝐀𝐒**\n"
                 "**Fale com a administração antes de realizar "
                 "qualquer pagamento.**"
             ),
