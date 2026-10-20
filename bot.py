@@ -1,3 +1,4 @@
+
 import os
 import asyncio
 import discord
@@ -1049,6 +1050,7 @@ async def listaremojis(ctx):
     for inicio in range(0, len(texto), 1800):
         await ctx.send(texto[inicio:inicio + 1800])
 
+
 # ==========================================
 # PUBLICAR ANUNCIO DO PASSE BOOYAH
 # ==========================================
@@ -1065,7 +1067,9 @@ async def publicarpasse(ctx):
             )
 
         if not isinstance(canal, discord.TextChannel):
-            await ctx.send("❌ O canal não é um canal de texto.")
+            await ctx.send(
+                "❌ O canal não é um canal de texto."
+            )
             return
 
         caminho_imagem = os.path.join(
@@ -1081,7 +1085,7 @@ async def publicarpasse(ctx):
 
         embed = discord.Embed(
             title=(
-                "<:PASSE_BOOYAH:1558634919985680454> "
+                "<:PASSE_BOOYAAH:1558634919985680454> "
                 "𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐄 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇"
             ),
             description=(
@@ -1091,37 +1095,80 @@ async def publicarpasse(ctx):
             color=discord.Color.gold()
         )
 
-        embed.set_image(url="attachment://passe_booyah.jpg")
+        # IMAGEM NO TOPO DO EMBED
+        embed.set_image(
+            url="attachment://passe_booyah.jpg"
+        )
 
+        # PREMIAÇÃO
         embed.add_field(
-            name="<:8916shoppingcart:1559026055170367508> 𝐓𝐈𝐂𝐊𝐄𝐓",
+            name=(
+                "<:PASSE_BOOYAAH:1558634919985680454> "
+                "𝐏𝐑𝐄𝐌𝐈𝐀𝐂̧𝐀̃𝐎"
+            ),
+            value="1 Passe Booyah",
+            inline=False
+        )
+
+        # VALOR DOS TICKETS
+        embed.add_field(
+            name=(
+                "<:8916shoppingcart:1559026055170367508> "
+                "𝐕𝐀𝐋𝐎𝐑 𝐏𝐎𝐑 𝐓𝐈𝐂𝐊𝐄𝐓"
+            ),
             value=(
-                "Cada ticket custa apenas "
-                "<a:999284cash:1559012499016261713> **R$ 0,50**. "
-                "Cada participante pode adquirir até **6 tickets** "
-                "para participar do sorteio do **Passe Booyah!**\n\n"
-                "**OBS:** A compra de mais tickets aumenta a tua "
-                "chance, mas não garante a vitória."
+                "<a:999284cash:1559012499016261713> "
+                "**R$ 50,00 por ticket**\n\n"
+                "Você pode adquirir **quantos tickets quiser**, "
+                "sem limite de quantidade por participante."
             ),
             inline=False
         )
 
+        # CHANCES DE GANHAR
+        embed.add_field(
+            name=(
+                "<:8916shoppingcart:1559026055170367508> "
+                "𝐂𝐇𝐀𝐍𝐂𝐄𝐒 𝐃𝐄 𝐆𝐀𝐍𝐇𝐀𝐑"
+            ),
+            value=(
+                "Cada ticket corresponde a uma participação "
+                "no sorteio.\n\n"
+                "Quanto mais tickets você adquirir, maiores "
+                "serão suas chances de ganhar. A vitória "
+                "não é garantida."
+            ),
+            inline=False
+        )
+
+        # TRANSPARENCIA
+        embed.add_field(
+            name=(
+                "<:Sentry:1558683706489708634> "
+                "𝐓𝐑𝐀𝐍𝐒𝐏𝐀𝐑𝐄̂𝐍𝐂𝐈𝐀"
+            ),
+            value=(
+                "• Compra acompanhada pela administração.\n"
+                "• Sorteio transparente.\n"
+                "• Resultado divulgado no servidor."
+            ),
+            inline=False
+        )
+
+        # COMO PARTICIPAR
         embed.add_field(
             name=(
                 "<:7406pix:1559018337558863933> "
                 "<a:207799mastercard:1559019335492706324> "
-                "  **COMO ADQUIRIR OS TICKETS**"
+                "𝐂𝐎𝐌𝐎 𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐑"
             ),
             value=(
-                "Quando chegar a hora de realizar o pagamento, "
-                "um <:50224modorange:1559028057912643615> "
-                "**administrador ou moderador** da Sentinela irá "
-                "atender você, explicar como funciona o processo, "
-                "enviar a chave Pix "
-                "<:7406pix:1559018337558863933> e orientar cada "
-                "etapa da compra dos tickets.\n\n"
-                "📢 Em caso de dúvidas, entre em contato com a "
-                "administração antes de realizar qualquer pagamento!"
+                "Abra um ticket e entre em contato com a equipe "
+                "da Sentinela para receber as orientações "
+                "sobre a participação.\n\n"
+                "<:50224modorange:1559028057912643615> "
+                "Em caso de dúvidas, fale com a administração "
+                "antes de realizar qualquer pagamento."
             ),
             inline=False
         )
@@ -1131,10 +1178,13 @@ async def publicarpasse(ctx):
             filename="passe_booyah.jpg"
         )
 
-        await canal.send(embed=embed, file=arquivo)
+        await canal.send(
+            embed=embed,
+            file=arquivo
+        )
 
         await ctx.send(
-            "✅ Anúncio do Passe Booyah publicado com sucesso!"
+            "Anúncio do Passe Booyah publicado com sucesso!"
         )
 
     except Exception as erro:
@@ -1145,6 +1195,7 @@ async def publicarpasse(ctx):
         await ctx.send(
             f"❌ Ocorreu um erro ao publicar o passe: {erro}"
         )
+
 
 # ==========================================
 # INICIAR BOT
