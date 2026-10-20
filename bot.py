@@ -70,6 +70,7 @@ EMOJI_GUARDIOES = discord.PartialEmoji(
 )
 
 # Emojis do Passe Booyah
+
 EMOJI_TOPICO_PASSE = discord.PartialEmoji(
     name="a13893yellowdot",
     id=1561925909852852264,
@@ -1109,58 +1110,56 @@ async def publicarpasse(ctx):
             ),
             description=(
                 "<:Sentry:1558683706489708634> "
-                "**EVENTO SENTINELA — PASSE BOOYAH**"
+                "**EVENTO SENTINELA"
             ),
             color=discord.Color.gold()
         )
 
-        # IMAGEM NO TOPO DO EMBED
+        # IMAGEM NO TOPO
         embed.set_image(
             url="attachment://passe_booyah.jpg"
         )
 
-        # PREMIACAO
-        embed.add_field(
-            name=f"{EMOJI_TOPICO_PASSE} 𝐏𝐑𝐄𝐌𝐈𝐀𝐂̧𝐀̃𝐎",
-            value="🏆 1 Passe Booyah",
-            inline=False
-        )
-
         # VALOR DOS TICKETS
         embed.add_field(
-            name=f"{EMOJI_TOPICO_PASSE} 𝐕𝐀𝐋𝐎𝐑 𝐏𝐎𝐑 𝐓𝐈𝐂𝐊𝐄𝐓",
+            name=(
+                f"{EMOJI_TOPICO_PASSE} "
+                "𝐕𝐀𝐋𝐎𝐑 𝐏𝐎𝐑 𝐓𝐈𝐂𝐊𝐄𝐓"
+            ),
             value=(
                 "<a:999284cash:1559012499016261713> "
                 "**R$ 50,00 por ticket**\n\n"
-                "• Cada ticket custa **R$ 50,00**.\n\n"
-                "• Você pode adquirir **quantos tickets quiser**, "
-                "sem limite de quantidade por participante.\n"
-                "\u200b\n"
+                "Você pode adquirir **quantos tickets quiser**, "
+                "sem limite de quantidade por participante."
             ),
             inline=False
         )
 
         # CHANCES DE GANHAR
         embed.add_field(
-            name=f"{EMOJI_TOPICO_PASSE} 𝐂𝐇𝐀𝐍𝐂𝐄𝐒 𝐃𝐄 𝐆𝐀𝐍𝐇𝐀𝐑",
+            name=(
+                f"{EMOJI_TOPICO_PASSE} "
+                "𝐂𝐇𝐀𝐍𝐂𝐄𝐒 𝐃𝐄 𝐆𝐀𝐍𝐇𝐀𝐑"
+            ),
             value=(
-                "• Cada ticket corresponde a uma participação "
+                "Cada ticket corresponde a uma participação "
                 "no sorteio.\n\n"
-                "\u200b\n\n"
-                "• Quanto mais tickets você adquirir, maiores "
-                "serão suas chances de ganhar.\n\n"
-                "\u200b\n\n"
-                "• A vitória não é garantida."
+                "Quanto mais tickets você adquirir, maiores "
+                "serão suas chances de ganhar. A vitória "
+                "não é garantida."
             ),
             inline=False
         )
 
         # TRANSPARENCIA
         embed.add_field(
-            name=f"{EMOJI_TOPICO_PASSE} 𝐓𝐑𝐀𝐍𝐒𝐏𝐀𝐑𝐄̂𝐍𝐂𝐈𝐀",
+            name=(
+                f"{EMOJI_TOPICO_PASSE} "
+                "𝐓𝐑𝐀𝐍𝐒𝐏𝐀𝐑𝐄̂𝐍𝐂𝐈𝐀"
+            ),
             value=(
-                "• Compra acompanhada pela administração.\n\n"
-                "• Sorteio transparente.\n\n"
+                "• Compra acompanhada pela administração.\n"
+                "• Sorteio transparente.\n"
                 "• Resultado divulgado no servidor."
             ),
             inline=False
@@ -1168,7 +1167,10 @@ async def publicarpasse(ctx):
 
         # COMO PARTICIPAR
         embed.add_field(
-            name=f"{EMOJI_TOPICO_PASSE} 𝐂𝐎𝐌𝐎 𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐑",
+            name=(
+                f"{EMOJI_TOPICO_PASSE} "
+                "𝐂𝐎𝐌𝐎 𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐑"
+            ),
             value=(
                 "<:7406pix:1559018337558863933> "
                 "<a:207799mastercard:1559019335492706324> "
@@ -1182,7 +1184,6 @@ async def publicarpasse(ctx):
             inline=False
         )
 
-        # RODAPE
         embed.set_footer(
             text="SENTINELA • PASSE BOOYAH"
         )
@@ -1206,7 +1207,6 @@ async def publicarpasse(ctx):
             f"[ERRO PUBLICAR PASSE] "
             f"{type(erro).__name__}: {erro!r}"
         )
-
         await ctx.send(
             f"❌ Ocorreu um erro ao publicar o passe: {erro}"
         )
