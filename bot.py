@@ -69,23 +69,47 @@ EMOJI_GUARDIOES = discord.PartialEmoji(
     name="guardioes", id=1558610184471973959
 )
 
-# Emojis do Passe Booyah
+# ==========================================
+# EMOJIS DO PASSE BOOYAH
+# ==========================================
 
 EMOJI_TOPICO_PASSE = discord.PartialEmoji(
-    name="a13893yellowdot",
+    name="a13893yellowdot15259153968871548",
     id=1561925909852852264,
     animated=True
 )
 
 EMOJI_TITULO_PASSE = discord.PartialEmoji(
-    name="ac_presente_tkf",
+    name="ac_presente_tkf15259294509806429",
     id=1561924913571569716,
     animated=True
 )
 
 EMOJI_DUVIDAS_PASSE = discord.PartialEmoji(
-    name="amarelo_lunar",
+    name="amarelo_lunar1525915443737657484",
     id=1561925242258067626
+)
+
+EMOJI_CARRINHO_PASSE = (
+    "<:8916shoppingcart:1559026055170367508>"
+)
+
+EMOJI_SUPORTE_PASSE = (
+    "<:suporte:1561945423780773908>"
+)
+
+EMOJI_TICKET_PASSE = (
+    "<:ticket_free:1561947176249069658>"
+)
+
+EMOJI_PIX_PASSE = "<:7406pix:1559018337558863933>"
+
+EMOJI_MASTERCARD_PASSE = (
+    "<a:207799mastercard:1559019335492706324>"
+)
+
+EMOJI_DINHEIRO_PASSE = (
+    "<a:999284cash:1559012499016261713>"
 )
 
 # ==========================================
@@ -1110,7 +1134,7 @@ async def publicarpasse(ctx):
             ),
             description=(
                 "<:Sentry:1558683706489708634> "
-                "**EVENTO SENTINELA"
+                "**EVENTO SENTINELA**"
             ),
             color=discord.Color.gold()
         )
@@ -1120,14 +1144,15 @@ async def publicarpasse(ctx):
             url="attachment://passe_booyah.jpg"
         )
 
-        # VALOR DOS TICKETS
+        # VALOR POR TICKET
         embed.add_field(
             name=(
                 f"{EMOJI_TOPICO_PASSE} "
                 "𝐕𝐀𝐋𝐎𝐑 𝐏𝐎𝐑 𝐓𝐈𝐂𝐊𝐄𝐓"
             ),
             value=(
-                "<a:999284cash:1559012499016261713> "
+                f"\n{EMOJI_CARRINHO_PASSE}\n"
+                f"{EMOJI_DINHEIRO_PASSE} "
                 "**R$ 50,00 por ticket**\n\n"
                 "Você pode adquirir **quantos tickets quiser**, "
                 "sem limite de quantidade por participante."
@@ -1146,7 +1171,7 @@ async def publicarpasse(ctx):
                 "no sorteio.\n\n"
                 "Quanto mais tickets você adquirir, maiores "
                 "serão suas chances de ganhar. A vitória "
-                "não é garantida."
+                "não é garantida.\n"
             ),
             inline=False
         )
@@ -1158,9 +1183,10 @@ async def publicarpasse(ctx):
                 "𝐓𝐑𝐀𝐍𝐒𝐏𝐀𝐑𝐄̂𝐍𝐂𝐈𝐀"
             ),
             value=(
-                "• Compra acompanhada pela administração.\n"
+                f"\n{EMOJI_SUPORTE_PASSE} "
+                "A compra será acompanhada pela administração.\n"
                 "• Sorteio transparente.\n"
-                "• Resultado divulgado no servidor."
+                "• Resultado divulgado no servidor.\n"
             ),
             inline=False
         )
@@ -1172,14 +1198,16 @@ async def publicarpasse(ctx):
                 "𝐂𝐎𝐌𝐎 𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐑"
             ),
             value=(
-                "<:7406pix:1559018337558863933> "
-                "<a:207799mastercard:1559019335492706324> "
-                "Abra um ticket e entre em contato com a equipe "
-                "da Sentinela para receber as orientações "
+                f"\n{EMOJI_TICKET_PASSE} "
+                "**Abra um ticket** e entre em contato com a "
+                "equipe da Sentinela para receber as orientações "
                 "sobre a participação.\n\n"
+                f"{EMOJI_PIX_PASSE} "
+                f"{EMOJI_MASTERCARD_PASSE}\n\n"
                 f"{EMOJI_DUVIDAS_PASSE} "
-                "Em caso de dúvidas, fale com a administração "
-                "antes de realizar qualquer pagamento."
+                "### **EM CASO DE DÚVIDAS**\n"
+                "**Fale com a administração antes de realizar "
+                "qualquer pagamento.**"
             ),
             inline=False
         )
