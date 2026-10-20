@@ -28,14 +28,6 @@ IMAGEM_BOAS_VINDAS = (
     "cfa8acf9d3323076c8f1a4c5071a36c6.jpg"
 )
 
-URL_IMAGEM_PASSE = (
-    "https://cdn.discordapp.com/attachments/1556840973022011402/"
-    "1558630340573143050/"
-    "60d5e3bd-6b8f-4d42-abf9-4b020a751464.jpg"
-    "?ex=6acc231f&is=6acad19f&hm="
-    "3b96e4c4f7630dba394437ac341c1909a360e343183848f028cb00ae4da67b12"
-)
-
 # ==========================================
 # EMOJIS PERSONALIZADOS
 # ==========================================
@@ -1076,6 +1068,17 @@ async def publicarpasse(ctx):
             await ctx.send("❌ O canal não é um canal de texto.")
             return
 
+        caminho_imagem = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "passe_booyah.jpg"
+        )
+
+        if not os.path.isfile(caminho_imagem):
+            await ctx.send(
+                "❌ Não encontrei passe_booyah.jpg na pasta do bot."
+            )
+            return
+
         embed = discord.Embed(
             title=(
                 "<:PASSE_BOOYAH:1558634919985680454> "
@@ -1088,25 +1091,21 @@ async def publicarpasse(ctx):
             color=discord.Color.gold()
         )
 
-        # Adiciona a imagem direto DENTRO do embed (ela vai ficar logo acima do TICKET, igualzinho na foto 1)
-        embed.set_image(url=URL_IMAGEM_PASSE)
-         
-        # TICKET
+        embed.set_image(url="attachment://passe_booyah.jpg")
+
         embed.add_field(
             name="<:8916shoppingcart:1559026055170367508> 𝐓𝐈𝐂𝐊𝐄𝐓",
             value=(
                 "Cada ticket custa apenas "
                 "<a:999284cash:1559012499016261713> **R$ 0,50**. "
                 "Cada participante pode adquirir até **6 tickets** "
-                "para participar do sorteio do "
-                " **Passe Booyah!** \n\n"
+                "para participar do sorteio do **Passe Booyah!**\n\n"
                 "**OBS:** A compra de mais tickets aumenta a tua "
                 "chance, mas não garante a vitória."
             ),
             inline=False
         )
 
-        # COMO REALIZAR A INSCRICAO
         embed.add_field(
             name=(
                 "<:7406pix:1559018337558863933> "
@@ -1115,10 +1114,11 @@ async def publicarpasse(ctx):
             ),
             value=(
                 "Quando chegar a hora de realizar o pagamento, "
-                "um    <:50224modorange:1559028057912643615> "
-                "**administrador ou moderador** da Sentinela irá atender você, "
-                "explicar como funciona o processo, enviar a chave "
-                "Pix <:7406pix:1559018337558863933>   e orientar cada "
+                "um <:50224modorange:1559028057912643615> "
+                "**administrador ou moderador** da Sentinela irá "
+                "atender você, explicar como funciona o processo, "
+                "enviar a chave Pix "
+                "<:7406pix:1559018337558863933> e orientar cada "
                 "etapa da compra dos tickets.\n\n"
                 "📢 Em caso de dúvidas, entre em contato com a "
                 "administração antes de realizar qualquer pagamento!"
@@ -1126,13 +1126,25 @@ async def publicarpasse(ctx):
             inline=False
         )
 
-        # Envia o embed com a imagem já embutida nele de forma limpa
-        await canal.send(embed=embed)
-        await ctx.send("✅ Anúncio do Passe Booyah publicado com sucesso!")
+        arquivo = discord.File(
+            caminho_imagem,
+            filename="passe_booyah.jpg"
+        )
+
+        await canal.send(embed=embed, file=arquivo)
+
+        await ctx.send(
+            "✅ Anúncio do Passe Booyah publicado com sucesso!"
+        )
 
     except Exception as erro:
-        print(f"[ERRO PUBLICAR PASSE] {erro}")
-        await ctx.send(f"❌ Ocorreu um erro ao publicar o passe: {erro}")
+        print(
+            f"[ERRO PUBLICAR PASSE] "
+            f"{type(erro).__name__}: {erro!r}"
+        )
+        await ctx.send(
+            f"❌ Ocorreu um erro ao publicar o passe: {erro}"
+        )
 
 # ==========================================
 # INICIAR BOT
