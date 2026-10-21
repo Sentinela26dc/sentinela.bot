@@ -1168,21 +1168,21 @@ async def publicarpasse(ctx):
             inline=False
         )
 
-        # CHANCES DE GANHAR
+        # INICIO DO EVENTO
         embed.add_field(
             name=(
                 f"{EMOJI_TOPICO_PASSE} "
-                "𝐂𝐇𝐀𝐍𝐂𝐄𝐒 𝐃𝐄 𝐆𝐀𝐍𝐇𝐀𝐑"
+                "𝐈𝐍𝐈́𝐂𝐈𝐎 𝐃𝐎 𝐄𝐕𝐄𝐍𝐓𝐎"
             ),
             value=(
-                "Cada ticket corresponde a uma participação "
-                "no sorteio.\n\n"
-                "Quanto mais tickets você adquirir, maiores "
-                "serão suas chances de ganhar. A vitória "
-                "não é garantida."
+                "As informações sobre o início do evento "
+                "serão divulgadas aqui no servidor.\n\n"
+                "Fique atento aos avisos da administração "
+                "para não perder nenhuma novidade!"
             ),
             inline=False
         )
+
 
         # TRANSPARENCIA
         embed.add_field(
