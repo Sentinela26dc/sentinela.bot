@@ -1189,6 +1189,7 @@ async def publicarpasse(ctx):
             inline=False
         )
         
+
         # INICIO DO EVENTO
         embed.add_field(
             name=(
@@ -1197,8 +1198,11 @@ async def publicarpasse(ctx):
             ),
             value=(
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
+                "**Data de início: 25/10/2026**\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_SUPORTE_PASSE} "
                 "As informações do evento serão divulgadas "
-                "no canal <#1556527447669997568>.\n\n"
+                "no canal <#1556527447669997568>.\n"
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_AVISO_EVENTO_PASSE} "
                 "Fique atento aos avisos da administração "
