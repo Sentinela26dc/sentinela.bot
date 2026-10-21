@@ -91,6 +91,18 @@ EMOJI_TITULO_PASSE = discord.PartialEmoji(
     animated=True
 )
 
+EMOJI_INICIO_EVENTO_PASSE = discord.PartialEmoji(
+    name="asino1477300288510623806",
+    id=1562309472330973194,
+    animated=True
+)
+
+EMOJI_AVISO_EVENTO_PASSE = discord.PartialEmoji(
+    name="aavisoaura1525915447445164112",
+    id=1562307850485899305,
+    animated=True
+)
+
 EMOJI_DUVIDAS_PASSE = discord.PartialEmoji(
     name="amarelo_lunar1525915443737657484",
     id=1561925242258067626
@@ -1180,18 +1192,20 @@ async def publicarpasse(ctx):
         # INICIO DO EVENTO
         embed.add_field(
             name=(
-                f"{EMOJI_TOPICO_PASSE} "
+                f"{EMOJI_INICIO_EVENTO_PASSE} "
                 "𝐈𝐍𝐈́𝐂𝐈𝐎 𝐃𝐎 𝐄𝐕𝐄𝐍𝐓𝐎"
             ),
             value=(
-                "As informações sobre o início do evento "
-                "serão divulgadas aqui no servidor.\n\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                "As informações do evento serão divulgadas "
+                "no canal <#1556527447669997568>.\n\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_AVISO_EVENTO_PASSE} "
                 "Fique atento aos avisos da administração "
                 "para não perder nenhuma novidade!"
             ),
             inline=False
         )
-
 
         # TRANSPARENCIA
         embed.add_field(
