@@ -120,6 +120,10 @@ EMOJI_DINHEIRO_PASSE = (
     "<a:999284cash:1559012499016261713>"
 )
 
+EMOJI_PONTO_AMARELO_PASSE = (
+    "<:ponto_amarelo_lunar_215259154756:1562283913827586119>"
+)
+
 # ==========================================
 # DISCORD
 # ==========================================
@@ -1152,20 +1156,21 @@ async def publicarpasse(ctx):
                # VALOR POR TICKET
         embed.add_field(
             name=(
-                f"{EMOJI_TOPICO_PASSE} "
                 f"{EMOJI_CARRINHO_PASSE} "
                 "𝐕𝐀𝐋𝐎𝐑 𝐏𝐎𝐑 𝐓𝐈𝐂𝐊𝐄𝐓"
             ),
             value=(
                 f"{EMOJI_DINHEIRO_PASSE} "
-                "**R$ 00,50 por ticket**\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                "**R$ 0,50 por ticket**\n\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
                 "**A quantidade de compra dos tickets "
                 "são ilimitadas** "
                 "<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810>"
             ),
             inline=False
         )
-
+        
         # INICIO DO EVENTO
         embed.add_field(
             name=(
@@ -1182,32 +1187,35 @@ async def publicarpasse(ctx):
         )
 
 
-        # TRANSPARENCIA
+              # TRANSPARENCIA
         embed.add_field(
             name=(
                 f"{EMOJI_TOPICO_PASSE} "
                 "𝐓𝐑𝐀𝐍𝐒𝐏𝐀𝐑𝐄̂𝐍𝐂𝐈𝐀"
             ),
             value=(
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_DUVIDAS_PASSE} "
-                "A compra será acompanhada pela administração.\n"
+                "A compra será acompanhada pela administração.\n\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_VERIFICADO_PASSE} "
-                "Sorteio transparente.\n"
+                "Sorteio transparente.\n\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_ESTRELA_PASSE} "
                 "Resultado divulgado no servidor."
             ),
             inline=False
         )
-
-        # COMO PARTICIPAR
+        
+          # COMO PARTICIPAR
         embed.add_field(
             name=(
-                f"{EMOJI_TOPICO_PASSE} "
                 f"{EMOJI_PIX_PASSE} "
                 f"{EMOJI_MASTERCARD_PASSE} "
                 "𝐂𝐎𝐌𝐎 𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐑"
             ),
             value=(
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_TICKET_PASSE} "
                 "**Abra um ticket** e entre em contato com a "
                 "equipe da Sentinela para receber as orientações "
