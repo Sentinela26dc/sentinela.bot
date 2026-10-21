@@ -1140,12 +1140,9 @@ async def publicarpasse(ctx):
                 f"{EMOJI_TITULO_PASSE} "
                 "𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐄 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇"
             ),
-            description=(
-                "<:Sentry:1558683706489708634> "
-                "**EVENTO SENTINELA**"
-            ),
             color=discord.Color.gold()
         )
+
 
         # IMAGEM NO TOPO
         embed.set_image(
@@ -1161,9 +1158,8 @@ async def publicarpasse(ctx):
             ),
             value=(
                 f"{EMOJI_DINHEIRO_PASSE} "
-                "**R$ 50,00 por ticket**\n\n"
-                "Você pode adquirir **quantos tickets quiser**, "
-                "sem limite de quantidade por participante."
+                "**R$ 00,50 por ticket**\n\n"
+                "**quantidade de tickets ilimitada**, "
             ),
             inline=False
         )
@@ -1205,23 +1201,19 @@ async def publicarpasse(ctx):
         embed.add_field(
             name=(
                 f"{EMOJI_TOPICO_PASSE} "
+                f"{EMOJI_PIX_PASSE} "
+                f"{EMOJI_MASTERCARD_PASSE} "
                 "𝐂𝐎𝐌𝐎 𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐑"
             ),
             value=(
                 f"{EMOJI_TICKET_PASSE} "
                 "**Abra um ticket** e entre em contato com a "
                 "equipe da Sentinela para receber as orientações "
-                "sobre a participação.\n\n"
-                f"{EMOJI_PIX_PASSE} "
-                f"{EMOJI_MASTERCARD_PASSE}\n\n"
-                f"{EMOJI_DUVIDAS_PASSE} "
-                "**𝐄𝐌 𝐂𝐀𝐒𝐎 𝐃𝐄 𝐃𝐔́𝐕𝐈𝐃𝐀𝐒**\n"
-                "**Fale com a administração antes de realizar "
-                "qualquer pagamento.**"
+                "sobre a participação."
             ),
             inline=False
         )
-
+        
         embed.set_footer(
             text="SENTINELA • PASSE BOOYAH"
         )
