@@ -79,6 +79,12 @@ EMOJI_TOPICO_PASSE = discord.PartialEmoji(
     animated=True
 )
 
+EMOJI_TRANSPARENCIA_PASSE = discord.PartialEmoji(
+    name="ayellow_parceiro1525943180707495",
+    id=1562282610443419688,
+    animated=True
+)
+
 EMOJI_TITULO_PASSE = discord.PartialEmoji(
     name="ac_presente_tkf15259294509806429",
     id=1561924913571569716,
@@ -1191,6 +1197,7 @@ async def publicarpasse(ctx):
         embed.add_field(
             name=(
                 f"{EMOJI_TOPICO_PASSE} "
+                f"{EMOJI_TRANSPARENCIA_PASSE} "
                 "𝐓𝐑𝐀𝐍𝐒𝐏𝐀𝐑𝐄̂𝐍𝐂𝐈𝐀"
             ),
             value=(
