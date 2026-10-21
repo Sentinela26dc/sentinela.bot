@@ -1187,7 +1187,7 @@ async def publicarpasse(ctx):
         )
 
 
-               # TRANSPARENCIA
+        # TRANSPARENCIA
         embed.add_field(
             name=(
                 f"{EMOJI_TOPICO_PASSE} "
