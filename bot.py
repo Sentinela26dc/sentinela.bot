@@ -1149,7 +1149,7 @@ async def publicarpasse(ctx):
             url="attachment://passe_booyah.jpg"
         )
 
-        # VALOR POR TICKET
+               # VALOR POR TICKET
         embed.add_field(
             name=(
                 f"{EMOJI_TOPICO_PASSE} "
@@ -1158,8 +1158,10 @@ async def publicarpasse(ctx):
             ),
             value=(
                 f"{EMOJI_DINHEIRO_PASSE} "
-                "**R$ 00,50 por ticket**\n\n"
-                "**quantidade de tickets ilimitada**, "
+                "**R$ 00,50 por ticket**\n"
+                "**A quantidade de compra dos tickets "
+                "são ilimitadas** "
+                "<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810>"
             ),
             inline=False
         )
