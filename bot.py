@@ -1279,10 +1279,6 @@ async def publicarpasse(ctx):
             file=arquivo
         )
 
-        await ctx.send(
-            "✅ Anúncio do Passe Booyah publicado com sucesso!"
-        )
-
     except Exception as erro:
         print(
             f"[ERRO PUBLICAR PASSE] "
