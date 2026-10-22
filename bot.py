@@ -142,6 +142,11 @@ EMOJI_PONTO_AMARELO_PASSE = (
     "<:ponto_amarelo_lunar_215259154756:1562283913827586119>"
 )
 
+EMOJI_TROFEU_PASSE = discord.PartialEmoji(
+    name="Pixelated_trophy_design__Pixel_g",
+    id=1562669175456014376
+)
+
 # ==========================================
 # DISCORD
 # ==========================================
@@ -1198,11 +1203,13 @@ async def publicarpasse(ctx):
             ),
             value=(
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_ESTRELA_PASSE} "
                 "**Data de início: 25/10/2026**\n"
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
-                f"{EMOJI_SUPORTE_PASSE} "
-                "As informações do evento serão divulgadas "
-                "no canal <#1556527447669997568>.\n"
+                f"{EMOJI_TROFEU_PASSE} "
+                "Todas as informações sobre o evento serão divulgadas "
+                "no canal <#1556527447669997568>, incluindo o anúncio "
+                "do ganhador.\n"
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_AVISO_EVENTO_PASSE} "
                 "Fique atento aos avisos da administração "
@@ -1225,7 +1232,7 @@ async def publicarpasse(ctx):
                 f"{EMOJI_VERIFICADO_PASSE} "
                 "Sorteio transparente.\n"
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
-                f"{EMOJI_ESTRELA_PASSE} "
+                f"{EMOJI_SUPORTE_PASSE} "
                 "Resultado divulgado no servidor."
             ),
             inline=False
