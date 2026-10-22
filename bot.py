@@ -1238,6 +1238,8 @@ async def publicarpasse(ctx):
             inline=False
         )
         
+
+
         # COMO PARTICIPAR
         embed.add_field(
             name=(
@@ -1247,14 +1249,22 @@ async def publicarpasse(ctx):
             ),
             value=(
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
-                f"{EMOJI_TICKET_PASSE} "
-                "**Abra um ticket** e entre em contato com a "
-                "equipe da Sentinela para receber as orientações "
-                "sobre a participação."
+                "**Requisito:** ter jogado pelo menos uma partida "
+                "com algum membro da guilda Sentinela.\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                "**Compra de tickets:** clique no botão abaixo "
+                "para comprar e informe a quantidade desejada.\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                "**Atendimento privado:** você será direcionado "
+                "para um canal privado com a administração.\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_PIX_PASSE} "
+                "**Pagamento via Pix:** um administrador enviará "
+                "a chave Pix para você realizar o pagamento."
             ),
             inline=False
         )
-        
+
         embed.set_footer(
             text="SENTINELA • PASSE BOOYAH"
         )
