@@ -1317,7 +1317,10 @@ class ConfirmarCompraView(discord.ui.View):
             )
 
             embed_compra = discord.Embed(
-                title="🎟️ SOLICITAÇÃO DE TICKETS",
+                title=(
+                    "<a:ac_presente_tkf15259294509806429:1561924913571569716> "
+                    "𝐒𝐎𝐋𝐈𝐂𝐈𝐓𝐀ÇÃ𝐎 𝐃𝐄 𝐓𝐈𝐂𝐊𝐄𝐓𝐒"
+                ),
                 description=(
                     f"Salve, {comprador.mention}!\n\n"
                     "Sua solicitação foi registrada. "
@@ -1358,14 +1361,20 @@ class ConfirmarCompraView(discord.ui.View):
                 text="SENTINELA • PASSE BOOYAH"
             )
 
+
             await canal_compra.send(
                 content=(
-                    f"{comprador.mention} "
-                    "A administração atenderá você aqui."
+                    f"Salve, {comprador.mention}!\n\n"
+                    "||"
+                    "<@&1556441469978411032> "
+                    "<@&1556530332281344082>"
+                    "||"
                 ),
                 embed=embed_compra,
                 allowed_mentions=discord.AllowedMentions(
-                    users=True, roles=False, everyone=False
+                    users=True,
+                    roles=True,
+                    everyone=False
                 )
             )
 
