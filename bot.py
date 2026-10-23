@@ -1328,10 +1328,11 @@ class ConfirmarCompraView(discord.ui.View):
             )
 
             embed_compra.add_field(
-                name="👤 Comprador",
+                name="<:6012memberorange1525915404063477:1562678454682390609> Comprador",
                 value=f"{comprador.mention}\n`{comprador.id}`",
                 inline=False
             )
+
             embed_compra.add_field(
                 name="🎟️ Quantidade solicitada",
                 value=(
@@ -1340,21 +1341,22 @@ class ConfirmarCompraView(discord.ui.View):
                 ),
                 inline=True
             )
+
             embed_compra.add_field(
                 name="💰 Preço unitário",
                 value=f"**{formatar_reais(PRECO_TICKET_CENTAVOS)}**",
                 inline=True
             )
+
             embed_compra.add_field(
-                name="🧮 Valor total",
-                value=f"**{formatar_reais(total_centavos)}**",
+                name="<:999284cash:1559012499016261713> Valor total",
+                value=(
+                    "<:cart1525498747360907294:1562678682936414251> "
+                    f"**{formatar_reais(total_centavos)}**"
+                ),
                 inline=False
             )
-            embed_compra.add_field(
-                name="🟡 Status do pagamento",
-                value="**AGUARDANDO CONFIRMAÇÃO**",
-                inline=False
-            )
+            
             embed_compra.set_footer(
                 text="SENTINELA • PASSE BOOYAH"
             )
