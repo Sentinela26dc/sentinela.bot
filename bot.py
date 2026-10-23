@@ -1298,6 +1298,7 @@ class ConfirmarCompraView(discord.ui.View):
                 manage_channels=True
             )
 
+     
         nome_seguro = "".join(
             caractere.lower()
             if caractere.isalnum() else "-"
@@ -1313,7 +1314,7 @@ class ConfirmarCompraView(discord.ui.View):
                     f"quantidade:{self.quantidade} "
                     "STATUS: AGUARDANDO PAGAMENTO"
                 ),
-                reason="Solicitação de tickets do Passe Booyah."
+                reason="Solicitacao de tickets do Passe Booyah"
             )
 
             embed_compra = discord.Embed(
