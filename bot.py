@@ -1343,17 +1343,14 @@ class ConfirmarCompraView(discord.ui.View):
             )
 
             embed_compra.add_field(
-                name="💰 Preço unitário",
+                name="<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810> Preço unitário",
                 value=f"**{formatar_reais(PRECO_TICKET_CENTAVOS)}**",
                 inline=True
             )
 
             embed_compra.add_field(
-                name="<:999284cash:1559012499016261713> Valor total",
-                value=(
-                    "<:cart1525498747360907294:1562678682936414251> "
-                    f"**{formatar_reais(total_centavos)}**"
-                ),
+                name="<:faturamento1425932438231580752:1563053394531455006> Valor total",
+                value=f"**{formatar_reais(total_centavos)}**",
                 inline=False
             )
             
