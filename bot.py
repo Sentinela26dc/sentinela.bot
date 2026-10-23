@@ -1321,18 +1321,16 @@ class ConfirmarCompraView(discord.ui.View):
                     "<a:ac_presente_tkf15259294509806429:1561924913571569716> "
                     "𝐒𝐎𝐋𝐈𝐂𝐈𝐓𝐀ÇÃ𝐎 𝐃𝐄 𝐓𝐈𝐂𝐊𝐄𝐓𝐒"
                 ),
-
-description=(
-    f"Salve, {comprador.mention}!\n\n"
-    "<:suporte_sentry:1563328550629675018> "
-    "Sua solicitação foi registrada. "
-    "Aguarde a administração para receber "
-    "as instruções de pagamento.\n\n"
-    "**Boa sorte no Passe Booyah, Sentinela!** 🦁"
-),
-color=discord.Color.gold()
-
-
+                description=(
+                    f"Salve, {comprador.mention}!\n\n"
+                    "<:suporte_sentry:1563328550629675018> "
+                    "Sua solicitação foi registrada. "
+                    "Aguarde a administração para receber "
+                    "as instruções de pagamento.\n\n"
+                    "**Boa sorte no Passe Booyah, Sentinela!** 🦁"
+                ),
+                color=discord.Color.gold()
+            )
 
             embed_compra.add_field(
                 name="<:6012memberorange1525915404063477:1562678454682390609> Comprador",
