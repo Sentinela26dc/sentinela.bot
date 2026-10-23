@@ -1130,6 +1130,315 @@ async def listaremojis(ctx):
 
 
 # ==========================================
+# SISTEMA DE AQUISICAO DE TICKETS
+# ==========================================
+
+PRECO_TICKET_CENTAVOS = 50
+
+
+def formatar_reais(centavos):
+    reais = centavos // 100
+    centavos_restantes = centavos % 100
+    return f"R$ {reais:,}".replace(",", ".") + (
+        f",{centavos_restantes:02d}"
+    )
+
+
+class QuantidadeTicketsModal(discord.ui.Modal):
+    def __init__(self):
+        super().__init__(title="Adquirir Tickets")
+
+        self.quantidade = discord.ui.TextInput(
+            label="Quantidade de tickets",
+            placeholder="Digite quantos tickets deseja (ex.: 12)",
+            required=True,
+            min_length=1,
+            max_length=5
+        )
+        self.add_item(self.quantidade)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        texto = str(self.quantidade.value).strip()
+
+        if not texto.isdigit():
+            await interaction.response.send_message(
+                "❌ Digite somente um número inteiro positivo.",
+                ephemeral=True
+            )
+            return
+
+        quantidade = int(texto)
+
+        if quantidade < 1 or quantidade > 99999:
+            await interaction.response.send_message(
+                "❌ Escolha uma quantidade entre 1 e 99.999 tickets.",
+                ephemeral=True
+            )
+            return
+
+        total_centavos = quantidade * PRECO_TICKET_CENTAVOS
+
+        embed = discord.Embed(
+            title="🎟️ CONFIRMAR AQUISIÇÃO DE TICKETS",
+            description=(
+                f"Olá, {interaction.user.mention}!\n\n"
+                "Confira os dados da sua solicitação antes de continuar."
+            ),
+            color=discord.Color.gold()
+        )
+
+        embed.add_field(
+            name="🎟️ Quantidade",
+            value=f"**{quantidade:,} tickets**".replace(",", "."),
+            inline=True
+        )
+        embed.add_field(
+            name="💰 Preço por ticket",
+            value=f"**{formatar_reais(PRECO_TICKET_CENTAVOS)}**",
+            inline=True
+        )
+        embed.add_field(
+            name="🧮 Valor total",
+            value=f"**{formatar_reais(total_centavos)}**",
+            inline=False
+        )
+        embed.add_field(
+            name="📌 Próxima etapa",
+            value=(
+                "Após confirmar, será criado um canal privado "
+                "para você e a administração. O pagamento ficará "
+                "aguardando verificação."
+            ),
+            inline=False
+        )
+        embed.set_footer(text="SENTINELA • PASSE BOOYAH")
+
+        await interaction.response.send_message(
+            embed=embed,
+            view=ConfirmarCompraView(
+                comprador_id=interaction.user.id,
+                quantidade=quantidade
+            ),
+            ephemeral=True
+        )
+
+
+class ConfirmarCompraView(discord.ui.View):
+    def __init__(self, comprador_id: int, quantidade: int):
+        super().__init__(timeout=300)
+        self.comprador_id = comprador_id
+        self.quantidade = quantidade
+
+    async def interaction_check(
+        self, interaction: discord.Interaction
+    ) -> bool:
+        if interaction.user.id != self.comprador_id:
+            await interaction.response.send_message(
+                "❌ Esta confirmação pertence a outro jogador.",
+                ephemeral=True
+            )
+            return False
+        return True
+
+    @discord.ui.button(
+        label="Confirmar aquisição",
+        emoji="🎟️",
+        style=discord.ButtonStyle.success
+    )
+    async def confirmar(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        guild = interaction.guild
+
+        if guild is None:
+            await interaction.response.send_message(
+                "❌ Este botão só funciona dentro do servidor.",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.defer(
+            ephemeral=True, thinking=True
+        )
+
+        comprador = interaction.user
+        total_centavos = (
+            self.quantidade * PRECO_TICKET_CENTAVOS
+        )
+
+        permissoes = {
+            guild.default_role: discord.PermissionOverwrite(
+                view_channel=False
+            ),
+            comprador: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                attach_files=True,
+                embed_links=True
+            )
+        }
+
+        for cargo_id in (CARGO_ADM_ID, CARGO_MODERADOR_ID):
+            cargo = guild.get_role(cargo_id)
+            if cargo:
+                permissoes[cargo] = discord.PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    read_message_history=True
+                )
+
+        if guild.me:
+            permissoes[guild.me] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                manage_channels=True
+            )
+
+        nome_seguro = "".join(
+            caractere.lower()
+            if caractere.isalnum() else "-"
+            for caractere in comprador.name
+        ).strip("-")[:40] or "jogador"
+
+        try:
+            canal_compra = await guild.create_text_channel(
+                name=f"tickets-{nome_seguro}",
+                overwrites=permissoes,
+                topic=(
+                    f"compra_tickets_usuario:{comprador.id} "
+                    f"quantidade:{self.quantidade} "
+                    "STATUS: AGUARDANDO PAGAMENTO"
+                ),
+                reason="Solicitação de tickets do Passe Booyah."
+            )
+
+            embed_compra = discord.Embed(
+                title="🎟️ SOLICITAÇÃO DE TICKETS",
+                description=(
+                    f"Salve, {comprador.mention}!\n\n"
+                    "Sua solicitação foi registrada. "
+                    "Aguarde a administração para receber "
+                    "as instruções de pagamento."
+                ),
+                color=discord.Color.gold()
+            )
+
+            embed_compra.add_field(
+                name="👤 Comprador",
+                value=f"{comprador.mention}\n`{comprador.id}`",
+                inline=False
+            )
+            embed_compra.add_field(
+                name="🎟️ Quantidade solicitada",
+                value=(
+                    f"**{self.quantidade:,} tickets**"
+                    .replace(",", ".")
+                ),
+                inline=True
+            )
+            embed_compra.add_field(
+                name="💰 Preço unitário",
+                value=f"**{formatar_reais(PRECO_TICKET_CENTAVOS)}**",
+                inline=True
+            )
+            embed_compra.add_field(
+                name="🧮 Valor total",
+                value=f"**{formatar_reais(total_centavos)}**",
+                inline=False
+            )
+            embed_compra.add_field(
+                name="🟡 Status do pagamento",
+                value="**AGUARDANDO CONFIRMAÇÃO**",
+                inline=False
+            )
+            embed_compra.set_footer(
+                text="SENTINELA • PASSE BOOYAH"
+            )
+
+            await canal_compra.send(
+                content=(
+                    f"{comprador.mention} "
+                    "A administração atenderá você aqui."
+                ),
+                embed=embed_compra,
+                allowed_mentions=discord.AllowedMentions(
+                    users=True, roles=False, everyone=False
+                )
+            )
+
+            await interaction.edit_original_response(
+                content=(
+                    f"✅ Sua solicitação foi criada!\n"
+                    f"Canal privado: {canal_compra.mention}\n"
+                    f"**Quantidade:** {self.quantidade} tickets\n"
+                    f"**Total:** {formatar_reais(total_centavos)}"
+                ),
+                view=None
+            )
+
+            self.stop()
+
+        except discord.Forbidden:
+            await interaction.edit_original_response(
+                content=(
+                    "❌ Não consegui criar o canal privado. "
+                    "Confira se o bot tem as permissões "
+                    "**Gerenciar canais** e **Ver canais**."
+                ),
+                view=None
+            )
+
+        except discord.HTTPException as erro:
+            print(f"[ERRO CRIAR COMPRA] {erro!r}")
+            await interaction.edit_original_response(
+                content=(
+                    "❌ O Discord não permitiu criar o canal. "
+                    "Tente novamente ou avise a administração."
+                ),
+                view=None
+            )
+
+    @discord.ui.button(
+        label="Cancelar",
+        emoji="❌",
+        style=discord.ButtonStyle.secondary
+    )
+    async def cancelar(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        await interaction.response.edit_message(
+            content="❌ Solicitação cancelada.",
+            embed=None,
+            view=None
+        )
+
+
+class AdquirirTicketsView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Adquirir Tickets",
+        emoji="🎟️",
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_adquirir_tickets"
+    )
+    async def adquirir(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        await interaction.response.send_modal(
+            QuantidadeTicketsModal()
+        )
+
+# ==========================================
 # PUBLICAR ANUNCIO DO PASSE BOOYAH
 # ==========================================
 
@@ -1274,11 +1583,12 @@ async def publicarpasse(ctx):
             filename="passe_booyah.jpg"
         )
 
-        await canal.send(
-            embed=embed,
-            file=arquivo
-        )
-
+    await canal.send(
+        embed=embed,
+        file=arquivo,
+        view=AdquirirTicketsView()
+    )
+    
     except Exception as erro:
         print(
             f"[ERRO PUBLICAR PASSE] "
@@ -1297,5 +1607,7 @@ if not TOKEN:
     raise RuntimeError(
         "A variável DISCORD_TOKEN não foi configurada no Railway."
     )
+
+bot.add_view(AdquirirTicketsView())
 
 bot.run(TOKEN)
