@@ -1323,16 +1323,18 @@ class ConfirmarCompraView(discord.ui.View):
                 ),
                 description=(
                     f"Salve, {comprador.mention}!\n\n"
+                    "<:suporte~1:1561945423780773908> "
                     "Sua solicitação foi registrada. "
                     "Aguarde a administração para receber "
-                    "as instruções de pagamento."
+                    "as instruções de pagamento.\n\n"
+                    "**Boa sorte no Passe Booyah, Sentinela!**🦁"
                 ),
                 color=discord.Color.gold()
             )
 
             embed_compra.add_field(
                 name="<:6012memberorange1525915404063477:1562678454682390609> Comprador",
-                value=f"{comprador.mention}\n`{comprador.id}`",
+                value=f"{comprador.mention}",
                 inline=False
             )
 
