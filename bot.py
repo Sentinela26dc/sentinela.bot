@@ -1334,7 +1334,7 @@ class ConfirmarCompraView(discord.ui.View):
             )
 
             embed_compra.add_field(
-                name="🎟️ Quantidade solicitada",
+                name="<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810> Quantidade solicitada",
                 value=(
                     f"**{self.quantidade:,} tickets**"
                     .replace(",", ".")
@@ -1343,17 +1343,17 @@ class ConfirmarCompraView(discord.ui.View):
             )
 
             embed_compra.add_field(
-                name="<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810> Preço unitário",
+                name="<:cifrao_sentry:1563067820131098624> Preço unitário",
                 value=f"**{formatar_reais(PRECO_TICKET_CENTAVOS)}**",
                 inline=True
             )
 
             embed_compra.add_field(
-                name="<:faturamento1425932438231580752:1563053394531455006> Valor total",
+                name="<:faturamento_sentry:1563062715222720574> Valor total",
                 value=f"**{formatar_reais(total_centavos)}**",
                 inline=False
             )
-            
+
             embed_compra.set_footer(
                 text="SENTINELA • PASSE BOOYAH"
             )
