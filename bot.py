@@ -1324,7 +1324,7 @@ class ConfirmarCompraView(discord.ui.View):
 
 description=(
     f"Salve, {comprador.mention}!\n\n"
-    "<:suporte~1:1561945423780773908> "
+    "<:suporte_sentry:1563328550629675018> "
     "Sua solicitação foi registrada. "
     "Aguarde a administração para receber "
     "as instruções de pagamento.\n\n"
