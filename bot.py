@@ -1578,17 +1578,22 @@ async def publicarpasse(ctx):
             text="SENTINELA • PASSE BOOYAH"
         )
 
+
         arquivo = discord.File(
             caminho_imagem,
             filename="passe_booyah.jpg"
         )
 
-    await canal.send(
-        embed=embed,
-        file=arquivo,
-        view=AdquirirTicketsView()
-    )
-    
+        await canal.send(
+            embed=embed,
+            file=arquivo,
+            view=AdquirirTicketsView()
+        )
+
+        await ctx.send(
+            "✅ Anúncio do Passe Booyah publicado com sucesso!"
+        )
+
     except Exception as erro:
         print(
             f"[ERRO PUBLICAR PASSE] "
@@ -1597,7 +1602,6 @@ async def publicarpasse(ctx):
         await ctx.send(
             f"❌ Ocorreu um erro ao publicar o passe: {erro}"
         )
-
 
 # ==========================================
 # INICIAR BOT
