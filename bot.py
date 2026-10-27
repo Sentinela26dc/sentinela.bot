@@ -1461,36 +1461,34 @@ class ConfirmarCompraView(discord.ui.View):
         )
 
 
+
 async def gerar_imagem_participantes(registros):
-    """Gera uma imagem com avatar, nome, tickets confirmados e total pago."""
+    """Gera uma imagem apenas com compradores confirmados."""
     largura = 900
-    altura_cabecalho = 130
+    altura_cabecalho = 24
     altura_linha = 76
     limite = 60
+
     itens = sorted(
         registros.items(),
         key=lambda item: int(item[1].get("tickets", 0)),
         reverse=True
     )[:limite]
 
-    altura = max(altura_cabecalho + 30, altura_cabecalho + len(itens) * altura_linha + 30)
+    altura = max(
+        60,
+        altura_cabecalho + len(itens) * altura_linha + 24
+    )
+
     imagem = Image.new("RGB", (largura, altura), "#171717")
     desenho = ImageDraw.Draw(imagem)
-    fonte_titulo = ImageFont.load_default(size=32)
+
     fonte_normal = ImageFont.load_default(size=23)
     fonte_pequena = ImageFont.load_default(size=18)
 
-    desenho.rectangle((0, 0, largura, altura_cabecalho), fill="#252525")
-    desenho.text((36, 28), "PARTICIPANTES DO SORTEIO DO PASSE BOOYAH", fill="#FFC800", font=fonte_titulo)
-    desenho.text(
-        (36, 78),
-        f"Pagamentos confirmados: {len(registros)}",
-        fill="#FFFFFF",
-        font=fonte_normal
-    )
-
     for indice, (usuario_id, registro) in enumerate(itens):
         y = altura_cabecalho + indice * altura_linha
+
         if indice % 2 == 0:
             desenho.rounded_rectangle(
                 (24, y + 4, largura - 24, y + altura_linha - 4),
@@ -1499,31 +1497,67 @@ async def gerar_imagem_participantes(registros):
             )
 
         avatar_x, avatar_y, tamanho_avatar = 42, y + 14, 48
+
         try:
             usuario = bot.get_user(int(usuario_id))
+
             if usuario is None:
                 usuario = await bot.fetch_user(int(usuario_id))
-            asset = usuario.display_avatar.replace(size=64, static_format="png")
+
+            asset = usuario.display_avatar.replace(
+                size=64,
+                static_format="png"
+            )
             dados_avatar = await asset.read()
-            avatar = Image.open(io.BytesIO(dados_avatar)).convert("RGBA")
-            avatar = ImageOps.fit(avatar, (tamanho_avatar, tamanho_avatar))
-            mascara = Image.new("L", (tamanho_avatar, tamanho_avatar), 0)
-            ImageDraw.Draw(mascara).ellipse((0, 0, tamanho_avatar - 1, tamanho_avatar - 1), fill=255)
-            imagem.paste(avatar, (avatar_x, avatar_y), mascara)
+
+            avatar = Image.open(
+                io.BytesIO(dados_avatar)
+            ).convert("RGBA")
+
+            avatar = ImageOps.fit(
+                avatar,
+                (tamanho_avatar, tamanho_avatar)
+            )
+
+            mascara = Image.new(
+                "L",
+                (tamanho_avatar, tamanho_avatar),
+                0
+            )
+            ImageDraw.Draw(mascara).ellipse(
+                (0, 0, tamanho_avatar - 1, tamanho_avatar - 1),
+                fill=255
+            )
+
+            imagem.paste(
+                avatar,
+                (avatar_x, avatar_y),
+                mascara
+            )
+
             nome = usuario.display_name
+
         except Exception:
             nome = str(registro.get("nome", "Jogador"))
 
         tickets = int(registro.get("tickets", 0))
         total_centavos = tickets * PRECO_TICKET_CENTAVOS
         nome = str(nome)[:38]
-        desenho.text((108, y + 12), nome, fill="#FFFFFF", font=fonte_normal)
+
+        desenho.text(
+            (108, y + 12),
+            nome,
+            fill="#FFFFFF",
+            font=fonte_normal
+        )
+
         desenho.text(
             (108, y + 42),
             f"{tickets:,} tickets".replace(",", "."),
             fill="#D5D5D5",
             font=fonte_pequena
         )
+
         desenho.text(
             (largura - 250, y + 27),
             f"Total: {formatar_reais(total_centavos)}",
@@ -1534,7 +1568,9 @@ async def gerar_imagem_participantes(registros):
     saida = io.BytesIO()
     imagem.save(saida, format="PNG", optimize=True)
     saida.seek(0)
+
     return saida, len(registros) > limite
+
 
 
 class AdquirirTicketsView(discord.ui.View):
@@ -1576,6 +1612,7 @@ class AdquirirTicketsView(discord.ui.View):
             arquivo = discord.File(imagem, filename="participantes_passe.png")
             embed = discord.Embed(
                 title="𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐍𝐓𝐄𝐒 𝐃𝐎 𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐎 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇",
+                description="PAGAMENTOS CONFIRMADOS",
                 color=discord.Color.gold()
             )
             embed.set_image(url="attachment://participantes_passe.png")
@@ -1746,7 +1783,7 @@ async def atualizar_anuncio_participantes():
 # ==========================================
 
 @bot.command(name="publicarpasse")
-@commands.has_permissions(administrator=True)
+@commands.check(eh_recrutador)
 async def publicarpasse(ctx):
     try:
         canal = bot.get_channel(CANAL_PASSE_BOOYAAH_ID)
