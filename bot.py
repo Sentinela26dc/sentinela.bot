@@ -1,5 +1,6 @@
 
 import os
+import json
 import asyncio
 import discord
 from discord.ext import commands
@@ -1134,6 +1135,36 @@ async def listaremojis(ctx):
 # ==========================================
 
 PRECO_TICKET_CENTAVOS = 50
+ARQUIVO_PARTICIPANTES_PASSE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "participantes_passe.json"
+)
+
+
+def carregar_dados_passe():
+    try:
+        with open(ARQUIVO_PARTICIPANTES_PASSE, "r", encoding="utf-8") as arquivo:
+            dados = json.load(arquivo)
+        if not isinstance(dados, dict):
+            raise ValueError("Formato de dados inválido")
+        dados.setdefault("participantes", {})
+        dados.setdefault("anuncio", None)
+        return dados
+    except FileNotFoundError:
+        return {"participantes": {}, "anuncio": None}
+    except (json.JSONDecodeError, OSError, ValueError) as erro:
+        print(f"[ERRO LER PARTICIPANTES DO PASSE] {erro!r}")
+        return {"participantes": {}, "anuncio": None}
+
+
+def salvar_dados_passe():
+    temporario = ARQUIVO_PARTICIPANTES_PASSE + ".tmp"
+    with open(temporario, "w", encoding="utf-8") as arquivo:
+        json.dump(dados_passe, arquivo, ensure_ascii=False, indent=2)
+    os.replace(temporario, ARQUIVO_PARTICIPANTES_PASSE)
+
+
+dados_passe = carregar_dados_passe()
 
 
 def formatar_reais(centavos):
@@ -1372,6 +1403,7 @@ class ConfirmarCompraView(discord.ui.View):
                     "||"
                 ),
                 embed=embed_compra,
+                view=ConfirmarPagamentoView(),
                 allowed_mentions=discord.AllowedMentions(
                     users=True,
                     roles=True,
@@ -1430,6 +1462,10 @@ class ConfirmarCompraView(discord.ui.View):
 class AdquirirTicketsView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
+        total_participantes = len(dados_passe["participantes"])
+        for item in self.children:
+            if getattr(item, "custom_id", None) == "sentinela_participantes":
+                item.label = f"PARTICIPANTES ({total_participantes})"
 
     @discord.ui.button(
         label="ADQUIRIR TICKETS",
@@ -1445,6 +1481,214 @@ class AdquirirTicketsView(discord.ui.View):
         await interaction.response.send_modal(
             QuantidadeTicketsModal()
         )
+
+    @discord.ui.button(
+        label="PARTICIPANTES (0)",
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_participantes"
+    )
+    async def participantes(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        registros = dados_passe["participantes"]
+        total_participantes = len(registros)
+        embed = discord.Embed(
+            title="𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐍𝐓𝐄𝐒 𝐃𝐎 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇",
+            description=(
+                f"Participantes com pagamento confirmado: **{total_participantes}**"
+            ),
+            color=discord.Color.gold()
+        )
+
+        if not registros:
+            embed.add_field(
+                name="Ainda não há participantes",
+                value="Os jogadores aparecerão aqui após a confirmação do pagamento por um administrador.",
+                inline=False
+            )
+        else:
+            ordenados = sorted(
+                registros.values(),
+                key=lambda registro: int(registro.get("tickets", 0)),
+                reverse=True
+            )
+            limite = 75
+            ordenados_visiveis = ordenados[:limite]
+            for inicio in range(0, len(ordenados_visiveis), 15):
+                grupo = ordenados_visiveis[inicio:inicio + 15]
+                linhas = [
+                    f"**{registro.get('nome', 'Jogador')}** — "
+                    f"{int(registro.get('tickets', 0)):,} tickets".replace(",", ".")
+                    for registro in grupo
+                ]
+                embed.add_field(
+                    name=(
+                        "Participantes e tickets confirmados"
+                        if inicio == 0 else "Continuação"
+                    ),
+                    value="\n".join(linhas)[:1024],
+                    inline=False
+                )
+            if len(ordenados) > limite:
+                embed.add_field(
+                    name="Lista parcial",
+                    value=f"E mais {len(ordenados) - limite} participantes não exibidos nesta lista.",
+                    inline=False
+                )
+
+        embed.set_footer(text="SENTINELA • PASSE BOOYAH")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class ConfirmarPagamentoView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="CONFIRMAR PAGAMENTO",
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_confirmar_pagamento_passe"
+    )
+    async def confirmar_pagamento(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        if not eh_recrutador(interaction.user):
+            await interaction.response.send_message(
+                "Você não tem permissão para confirmar pagamentos.",
+                ephemeral=True
+            )
+            return
+
+        canal = interaction.channel
+        if not isinstance(canal, discord.TextChannel) or not canal.topic:
+            await interaction.response.send_message(
+                "Não consegui identificar os dados desta compra.",
+                ephemeral=True
+            )
+            return
+
+        if "STATUS: PAGAMENTO CONFIRMADO" in canal.topic:
+            await interaction.response.send_message(
+                "Este pagamento já foi confirmado anteriormente.",
+                ephemeral=True
+            )
+            return
+
+        if "STATUS: AGUARDANDO PAGAMENTO" not in canal.topic:
+            await interaction.response.send_message(
+                "Este canal não está aguardando confirmação de pagamento.",
+                ephemeral=True
+            )
+            return
+
+        dados_topico = {}
+        for parte in canal.topic.split():
+            if ":" in parte:
+                chave, valor = parte.split(":", 1)
+                if chave in ("compra_tickets_usuario", "quantidade"):
+                    try:
+                        dados_topico[chave] = int(valor)
+                    except ValueError:
+                        pass
+
+        comprador_id = dados_topico.get("compra_tickets_usuario")
+        quantidade = dados_topico.get("quantidade")
+        if not comprador_id or not quantidade or quantidade < 1:
+            await interaction.response.send_message(
+                "Não consegui ler o comprador ou a quantidade neste canal.",
+                ephemeral=True
+            )
+            return
+
+        membro = interaction.guild.get_member(comprador_id) if interaction.guild else None
+        if membro is None and interaction.guild:
+            try:
+                membro = await interaction.guild.fetch_member(comprador_id)
+            except discord.HTTPException:
+                membro = None
+        nome = membro.display_name if membro else f"Usuário {comprador_id}"
+
+        tinha_registro_anterior = str(comprador_id) in dados_passe["participantes"]
+        registro_anterior = dict(
+            dados_passe["participantes"].get(str(comprador_id), {})
+        )
+        registro = dados_passe["participantes"].get(str(comprador_id), {
+            "nome": nome,
+            "tickets": 0
+        })
+        registro["nome"] = nome
+        registro["tickets"] = int(registro.get("tickets", 0)) + quantidade
+        dados_passe["participantes"][str(comprador_id)] = registro
+
+        novo_topico = canal.topic.replace(
+            "STATUS: AGUARDANDO PAGAMENTO",
+            "STATUS: PAGAMENTO CONFIRMADO"
+        )
+        try:
+            await canal.edit(
+                topic=novo_topico,
+                reason=f"Pagamento confirmado por {interaction.user}"
+            )
+            salvar_dados_passe()
+        except (discord.HTTPException, OSError) as erro:
+            if tinha_registro_anterior:
+                dados_passe["participantes"][str(comprador_id)] = registro_anterior
+            else:
+                dados_passe["participantes"].pop(str(comprador_id), None)
+            try:
+                salvar_dados_passe()
+            except OSError:
+                pass
+            try:
+                await canal.edit(
+                    topic=novo_topico.replace(
+                        "STATUS: PAGAMENTO CONFIRMADO",
+                        "STATUS: AGUARDANDO PAGAMENTO"
+                    ),
+                    reason="Reverter confirmação que não pôde ser salva"
+                )
+            except discord.HTTPException:
+                pass
+            await interaction.response.send_message(
+                f"Não consegui salvar a confirmação: {erro}",
+                ephemeral=True
+            )
+            return
+
+        try:
+            await atualizar_anuncio_participantes()
+        except Exception as erro:
+            print(f"[ERRO ATUALIZAR BOTAO PARTICIPANTES] {erro!r}")
+
+        await interaction.response.edit_message(view=None)
+        await interaction.followup.send(
+            (
+                f"✅ Pagamento confirmado por {interaction.user.mention}. "
+                f"Foram registrados {quantidade:,} tickets para {nome}."
+            ).replace(",", "."),
+            ephemeral=True
+        )
+
+async def atualizar_anuncio_participantes():
+    anuncio = dados_passe.get("anuncio")
+    if not anuncio:
+        return
+
+    canal_id = anuncio.get("canal_id")
+    mensagem_id = anuncio.get("mensagem_id")
+    if not canal_id or not mensagem_id:
+        return
+
+    canal = bot.get_channel(canal_id)
+    if canal is None:
+        canal = await bot.fetch_channel(canal_id)
+    mensagem = await canal.fetch_message(mensagem_id)
+    await mensagem.edit(view=AdquirirTicketsView())
+
 
 # ==========================================
 # PUBLICAR ANUNCIO DO PASSE BOOYAH
@@ -1591,11 +1835,16 @@ async def publicarpasse(ctx):
             filename="passe_booyah.jpg"
         )
 
-        await canal.send(
+        mensagem_anuncio = await canal.send(
             embed=embed,
             file=arquivo,
             view=AdquirirTicketsView()
         )
+        dados_passe["anuncio"] = {
+            "canal_id": canal.id,
+            "mensagem_id": mensagem_anuncio.id
+        }
+        salvar_dados_passe()
 
         await ctx.send(
             "Anuncio do Passe Booyah publicado com sucesso!"
@@ -1620,5 +1869,6 @@ if not TOKEN:
     )
 
 bot.add_view(AdquirirTicketsView())
+bot.add_view(ConfirmarPagamentoView())
 
 bot.run(TOKEN)
