@@ -1179,40 +1179,49 @@ class QuantidadeTicketsModal(discord.ui.Modal):
         total_centavos = quantidade * PRECO_TICKET_CENTAVOS
 
         embed = discord.Embed(
-            title="🎟️ CONFIRMAR AQUISIÇÃO DE TICKETS",
+            title=(
+                "<a:ac_presente_tkf15259294509806429:1561924913571569716> "
+                "𝐂𝐎𝐍𝐅𝐈𝐑𝐌𝐀𝐑 𝐂𝐎𝐌𝐏𝐑𝐀 𝐃𝐎𝐒 𝐓𝐈𝐂𝐊𝐄𝐓𝐒"
+            ),
             description=(
-                f"Olá, {interaction.user.mention}!\n\n"
-                "Confira os dados da sua solicitação antes de continuar."
+                f"Salve, {interaction.user.mention}!\n\n"
+                "**Confira os dados da sua solicitacao "
+                "antes de continuar.**"
             ),
             color=discord.Color.gold()
         )
 
         embed.add_field(
-            name="🎟️ Quantidade",
+            name="<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810> Quantidade",
             value=f"**{quantidade:,} tickets**".replace(",", "."),
             inline=True
         )
+
         embed.add_field(
-            name="💰 Preço por ticket",
+            name="<:cifrao_sentry:1563067820131098624> Preco por ticket",
             value=f"**{formatar_reais(PRECO_TICKET_CENTAVOS)}**",
             inline=True
         )
+
         embed.add_field(
-            name="🧮 Valor total",
+            name="<:faturamento_sentry:1563062715222720574> Valor total",
             value=f"**{formatar_reais(total_centavos)}**",
             inline=False
         )
+
         embed.add_field(
-            name="📌 Próxima etapa",
+            name="<:suporte_sentry:1563328550629675018> Proxima etapa",
             value=(
-                "Após confirmar, será criado um canal privado "
-                "para você e a administração. O pagamento ficará "
-                "aguardando verificação."
+                "Apos confirmar, sera criado um canal privado "
+                "para voce e a administracao. O pagamento ficara "
+                "aguardando verificacao."
             ),
             inline=False
         )
-        embed.set_footer(text="SENTINELA • PASSE BOOYAH")
 
+        embed.set_footer(
+            text="SENTINELA • PASSE BOOYAH"
+        )
         await interaction.response.send_message(
             embed=embed,
             view=ConfirmarCompraView(
@@ -1241,9 +1250,9 @@ class ConfirmarCompraView(discord.ui.View):
         return True
 
     @discord.ui.button(
-        label="Confirmar aquisição",
+        label="Confirmar compra",
         emoji="🎟️",
-        style=discord.ButtonStyle.success
+        style=discord.ButtonStyle.secondary
     )
     async def confirmar(
         self,
@@ -1318,33 +1327,25 @@ class ConfirmarCompraView(discord.ui.View):
             )
 
             embed_compra = discord.Embed(
-                title=(
-                    "<a:ac_presente_tkf15259294509806429:1561924913571569716> "
-                    "𝐒𝐎𝐋𝐈𝐂𝐈𝐓𝐀ÇÃ𝐎 𝐃𝐄 𝐓𝐈𝐂𝐊𝐄𝐓𝐒"
-                ),
+                title="𝐒𝐎𝐋𝐈𝐂𝐈𝐓𝐀ÇÃ𝐎 𝐃𝐄 𝐓𝐈𝐂𝐊𝐄𝐓𝐒",
                 description=(
                     f"Salve, {comprador.mention}!\n\n"
                     "<:suporte_sentry:1563328550629675018> "
-                    "Sua solicitação foi registrada. "
-                    "Aguarde a administração para receber "
-                    "as instruções de pagamento.\n\n"
-                    "**Boa sorte no Passe Booyah, Sentinela!** 🦁"
+                    "**Sua solicitação foi registrada com sucesso!**\n\n"
+                    "Aguarde até que um administrador venha atender você."
                 ),
                 color=discord.Color.gold()
             )
 
             embed_compra.add_field(
-                name="<:6012memberorange1525915404063477:1562678454682390609> Comprador",
+                name="<:Personagem_Sentry:1563331978110046300>  Comprador",
                 value=f"{comprador.mention}",
                 inline=False
             )
 
             embed_compra.add_field(
                 name="<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810> Quantidade solicitada",
-                value=(
-                    f"**{self.quantidade:,} tickets**"
-                    .replace(",", ".")
-                ),
+                value=f"**{self.quantidade:,} tickets**".replace(",", "."),
                 inline=True
             )
 
@@ -1363,8 +1364,6 @@ class ConfirmarCompraView(discord.ui.View):
             embed_compra.set_footer(
                 text="SENTINELA • PASSE BOOYAH"
             )
-
-
             await canal_compra.send(
                 content=(
                     f"Salve, {comprador.mention}!\n\n"
@@ -1435,7 +1434,7 @@ class AdquirirTicketsView(discord.ui.View):
         super().__init__(timeout=None)
 
     @discord.ui.button(
-        label="Adquirir Tickets",
+        label="Comprar ticket",
         emoji="🎟️",
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_adquirir_tickets"
@@ -1481,6 +1480,7 @@ async def publicarpasse(ctx):
             )
             return
 
+
         # TITULO E DESCRICAO
         embed = discord.Embed(
             title=(
@@ -1490,13 +1490,12 @@ async def publicarpasse(ctx):
             color=discord.Color.gold()
         )
 
-
         # IMAGEM NO TOPO
         embed.set_image(
             url="attachment://passe_booyah.jpg"
         )
 
-          # VALOR POR TICKET
+        # VALOR POR TICKET
         embed.add_field(
             name=(
                 f"{EMOJI_CARRINHO_PASSE} "
@@ -1507,13 +1506,12 @@ async def publicarpasse(ctx):
                 f"{EMOJI_DINHEIRO_PASSE} "
                 "**R$ 0,50 por ticket**\n"
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
+                "<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810> "
                 "**A quantidade de compra dos tickets "
-                "são ilimitadas** "
-                "<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810>"
+                "sao ilimitadas**"
             ),
             inline=False
         )
-        
 
         # INICIO DO EVENTO
         embed.add_field(
@@ -1524,16 +1522,16 @@ async def publicarpasse(ctx):
             value=(
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_ESTRELA_PASSE} "
-                "**Data de início: 25/10/2026**\n"
+                "**Data de inicio: 25/10/2026**\n"
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_TROFEU_PASSE} "
-                "Todas as informações sobre o evento serão divulgadas "
-                "no canal <#1556527447669997568>, incluindo o anúncio "
+                "Todas as informacoes sobre o evento serao divulgadas "
+                "no canal <#1556527447669997568>, incluindo o anuncio "
                 "do ganhador.\n"
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_AVISO_EVENTO_PASSE} "
-                "Fique atento aos avisos da administração "
-                "para não perder nenhuma novidade!"
+                "Fique atento aos avisos da administracao "
+                "para nao perder nenhuma novidade!"
             ),
             inline=False
         )
@@ -1547,7 +1545,7 @@ async def publicarpasse(ctx):
             value=(
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_DUVIDAS_PASSE} "
-                "A compra será acompanhada pela administração.\n"
+                "A compra sera acompanhada pela administracao.\n"
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_VERIFICADO_PASSE} "
                 "Sorteio transparente.\n"
@@ -1557,8 +1555,6 @@ async def publicarpasse(ctx):
             ),
             inline=False
         )
-        
-
 
         # COMO PARTICIPAR
         embed.add_field(
@@ -1569,18 +1565,21 @@ async def publicarpasse(ctx):
             ),
             value=(
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
                 "**Requisito:** ter jogado pelo menos uma partida "
                 "com algum membro da guilda Sentinela.\n"
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
-                "**Compra de tickets:** clique no botão abaixo "
+                "<:faturamento_sentry:1563062715222720574> "
+                "**Compra de tickets:** clique no botao abaixo "
                 "para comprar e informe a quantidade desejada.\n"
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
-                "**Atendimento privado:** você será direcionado "
-                "para um canal privado com a administração.\n"
+                "<:amarelo_lunar:1561925242258067626> "
+                "**Atendimento privado:** voce sera direcionado "
+                "para um canal privado com a administracao.\n"
                 f"{EMOJI_PONTO_AMARELO_PASSE} "
                 f"{EMOJI_PIX_PASSE} "
-                "**Pagamento via Pix:** um administrador enviará "
-                "a chave Pix para você realizar o pagamento."
+                "**Pagamento via Pix:** um administrador enviara "
+                "a chave Pix para voce realizar o pagamento."
             ),
             inline=False
         )
@@ -1588,7 +1587,6 @@ async def publicarpasse(ctx):
         embed.set_footer(
             text="SENTINELA • PASSE BOOYAH"
         )
-
 
         arquivo = discord.File(
             caminho_imagem,
@@ -1602,7 +1600,7 @@ async def publicarpasse(ctx):
         )
 
         await ctx.send(
-            "✅ Anúncio do Passe Booyah publicado com sucesso!"
+            "Anuncio do Passe Booyah publicado com sucesso!"
         )
 
     except Exception as erro:
@@ -1611,7 +1609,7 @@ async def publicarpasse(ctx):
             f"{type(erro).__name__}: {erro!r}"
         )
         await ctx.send(
-            f"❌ Ocorreu um erro ao publicar o passe: {erro}"
+            f"Ocorreu um erro ao publicar o passe: {erro}"
         )
 
 # ==========================================
