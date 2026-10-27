@@ -1484,6 +1484,7 @@ class AdquirirTicketsView(discord.ui.View):
 
     @discord.ui.button(
         label="PARTICIPANTES (0)",
+        emoji="<:membros_sentry:1564489956766916698>",
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_participantes"
     )
