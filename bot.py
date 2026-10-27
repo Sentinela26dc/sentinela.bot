@@ -1412,7 +1412,7 @@ class ConfirmarCompraView(discord.ui.View):
                 view=None
             )
 
-     @discord.ui.button(
+    @discord.ui.button(
         label="Cancelar",
         emoji="<:esquerdaseta:1564472875916853248>",
         style=discord.ButtonStyle.secondary
