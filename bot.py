@@ -1481,8 +1481,7 @@ async def gerar_imagem_participantes(registros):
     fonte_pequena = ImageFont.load_default(size=18)
 
     desenho.rectangle((0, 0, largura, altura_cabecalho), fill="#252525")
-    desenho.rectangle((0, 0, 12, altura), fill="#FFC800")
-    desenho.text((36, 28), "PARTICIPANTES DO PASSE BOOYAH", fill="#FFC800", font=fonte_titulo)
+    desenho.text((36, 28), "PARTICIPANTES DO SORTEIO DO PASSE BOOYAH", fill="#FFC800", font=fonte_titulo)
     desenho.text(
         (36, 78),
         f"Pagamentos confirmados: {len(registros)}",
@@ -1571,34 +1570,15 @@ class AdquirirTicketsView(discord.ui.View):
         button: discord.ui.Button
     ):
         registros = dados_passe["participantes"]
-        if not registros:
-            embed = discord.Embed(
-                title="𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐍𝐓𝐄𝐒 𝐃𝐎 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇",
-                description=(
-                    "Ainda não há participantes. Eles aparecerão aqui "
-                    "depois que um administrador confirmar o pagamento."
-                ),
-                color=discord.Color.gold()
-            )
-            embed.set_footer(text="SENTINELA • PASSE BOOYAH")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            return
-
         await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             imagem, parcial = await gerar_imagem_participantes(registros)
             arquivo = discord.File(imagem, filename="participantes_passe.png")
             embed = discord.Embed(
-                title="𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐍𝐓𝐄𝐒 𝐃𝐎 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇",
-                description=(
-                    f"Pagamentos confirmados: **{len(registros)}**\n"
-                    "A imagem mostra os tickets confirmados e o total por participante."
-                    + ("\n*Exibindo os primeiros 60 participantes.*" if parcial else "")
-                ),
+                title="𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐍𝐓𝐄𝐒 𝐃𝐎 𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐎 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇",
                 color=discord.Color.gold()
             )
             embed.set_image(url="attachment://participantes_passe.png")
-            embed.set_footer(text="SENTINELA • PASSE BOOYAH")
             await interaction.followup.send(
                 embed=embed,
                 file=arquivo,
