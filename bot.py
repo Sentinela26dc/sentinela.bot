@@ -1251,7 +1251,7 @@ class ConfirmarCompraView(discord.ui.View):
 
     @discord.ui.button(
         label="Confirmar compra",
-        emoji="🎟️",
+        emoji="<:resolvido_sentry:1564471708146999406>",
         style=discord.ButtonStyle.secondary
     )
     async def confirmar(
@@ -1412,9 +1412,9 @@ class ConfirmarCompraView(discord.ui.View):
                 view=None
             )
 
-    @discord.ui.button(
+     @discord.ui.button(
         label="Cancelar",
-        emoji="❌",
+        emoji="<:esquerdaseta:1564472875916853248>",
         style=discord.ButtonStyle.secondary
     )
     async def cancelar(
@@ -1434,8 +1434,7 @@ class AdquirirTicketsView(discord.ui.View):
         super().__init__(timeout=None)
 
     @discord.ui.button(
-        label="Comprar ticket",
-        emoji="🎟️",
+        label="Comprar TICKET",
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_adquirir_tickets"
     )
