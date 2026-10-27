@@ -121,7 +121,7 @@ EMOJI_CARRINHO_PASSE = (
 )
 
 EMOJI_SUPORTE_PASSE = (
-    "<:suporte:1561945423780773908>"
+    "<:suporte_sentry:1563328550629675018>"
 )
 
 EMOJI_TICKET_PASSE = (
@@ -1250,8 +1250,7 @@ class ConfirmarCompraView(discord.ui.View):
         return True
 
     @discord.ui.button(
-        label="Confirmar compra",
-        emoji="<:resolvido_sentry:1564471708146999406>",
+        label="CONFIRMAR COMPRA",
         style=discord.ButtonStyle.secondary
     )
     async def confirmar(
@@ -1413,8 +1412,7 @@ class ConfirmarCompraView(discord.ui.View):
             )
 
     @discord.ui.button(
-        label="Cancelar",
-        emoji="<:esquerdaseta:1564472875916853248>",
+        label="CANCELAR",
         style=discord.ButtonStyle.secondary
     )
     async def cancelar(
@@ -1434,7 +1432,8 @@ class AdquirirTicketsView(discord.ui.View):
         super().__init__(timeout=None)
 
     @discord.ui.button(
-        label="Comprar TICKET",
+        label="ADQUIRIR TICKETS",
+        emoji="<a:aabcyellowestrelatkf152591544208:1561953163840462952>",
         style=discord.ButtonStyle.secondary,
         custom_id="sentinela_adquirir_tickets"
     )
