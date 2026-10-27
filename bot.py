@@ -177,14 +177,14 @@ def obter_fila(guild_id):
     return filas[guild_id]
 
 
+
 def eh_recrutador(membro):
     if not isinstance(membro, discord.Member):
         return False
 
-    # Permite o dono do servidor
-    if membro.guild.owner_id == membro.id:
-        return True
-
+    # Somente o dono do servidor pode publicar o Passe Booyah
+    return membro.id == membro.guild.owner_id
+    
     # Permite administradores
     if membro.guild_permissions.administrator:
         return True
