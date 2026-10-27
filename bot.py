@@ -1210,15 +1210,15 @@ class QuantidadeTicketsModal(discord.ui.Modal):
         )
 
         embed.add_field(
-            name="<:suporte_sentry:1563328550629675018> Proxima etapa",
+            name="<:suporte_sentry:1563328550629675018> 𝐏𝐑𝐀𝐙𝐎 𝐃𝐄 𝐀𝐓𝐄𝐍𝐃𝐈𝐌𝐄𝐍𝐓𝐎",
             value=(
-                "Apos confirmar, sera criado um canal privado "
-                "para voce e a administracao. O pagamento ficara "
-                "aguardando verificacao."
+                "<:ponto_amarelo_lunar_215259154756:1562283913827586119> "
+                "<a:ayellow_parceiro1525943180707495:1562282610443419688> "
+                "Um administrador irá atender você e enviar a chave PIX "
+                "em até **5 𝑀𝐼𝑁𝑈𝑇𝑂𝑆**."
             ),
             inline=False
         )
-
         embed.set_footer(
             text="SENTINELA • PASSE BOOYAH"
         )
@@ -1412,7 +1412,7 @@ class ConfirmarCompraView(discord.ui.View):
             )
 
     @discord.ui.button(
-        label="CANCELAR",
+        label="CANCELAR COMPRA",
         style=discord.ButtonStyle.secondary
     )
     async def cancelar(
