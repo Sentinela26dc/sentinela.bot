@@ -181,10 +181,20 @@ def eh_recrutador(membro):
     if not isinstance(membro, discord.Member):
         return False
 
+    # Permite o dono do servidor
+    if membro.guild.owner_id == membro.id:
+        return True
+
+    # Permite administradores
     if membro.guild_permissions.administrator:
         return True
 
-    autorizados = {CARGO_ADM_ID, CARGO_MODERADOR_ID}
+    # Permite os cargos autorizados
+    autorizados = {
+        CARGO_ADM_ID,
+        CARGO_MODERADOR_ID
+    }
+
     return any(cargo.id in autorizados for cargo in membro.roles)
 
 
