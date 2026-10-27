@@ -1,3 +1,4 @@
+
 import os
 import json
 import asyncio
@@ -497,3 +498,1448 @@ class RecrutamentoView(discord.ui.View):
 # ==========================================
 
 async def garantir_mensagem_recrutamento(canal, membro):
+    embed = discord.Embed(
+        title="🦁 𝐒𝐄𝐍𝐓𝐈𝐍𝐄𝐋𝐀 | 𝐑𝐄𝐂𝐑𝐔𝐓𝐀𝐌𝐄𝐍𝐓𝐎",
+        description=(
+            f"Salve, {membro.mention}!\n\n"
+            "Este é o seu canal de recrutamento na Sentinela.\n\n"
+            "Aguarde um administrador ou moderador "
+            "para avaliar seu recrutamento.\n\n"
+            "🦁 Boa sorte!"
+        ),
+        color=discord.Color.gold()
+    )
+
+    embed.set_footer(text="SENTINELA • RECRUTAMENTO")
+
+    moderador = canal.guild.get_role(CARGO_MODERADOR_ID)
+    adm = canal.guild.get_role(CARGO_ADM_ID)
+
+    mencoes = " ".join(
+        cargo.mention
+        for cargo in (moderador, adm)
+        if cargo is not None
+    )
+
+    async for mensagem in canal.history(limit=20):
+        if mensagem.author == bot.user and mensagem.embeds:
+            await mensagem.edit(
+                content=mencoes or None,
+                embed=embed,
+                view=RecrutamentoView(),
+                allowed_mentions=discord.AllowedMentions(
+                    roles=True, users=True
+                )
+            )
+            return
+
+    await canal.send(
+        content=mencoes or None,
+        embed=embed,
+        view=RecrutamentoView(),
+        allowed_mentions=discord.AllowedMentions(
+            roles=True, users=True
+        )
+    )
+
+
+async def criar_recrutamento(membro):
+    guild = membro.guild
+
+    if membro.id in recrutamentos_em_criacao:
+        return
+
+    recrutamentos_em_criacao.add(membro.id)
+
+    try:
+        topico = f"recrutamento_usuario:{membro.id}"
+
+        for canal_existente in guild.text_channels:
+            if (
+                canal_existente.topic
+                and topico in canal_existente.topic
+                and not recrutamento_encerrado(canal_existente)
+            ):
+                await garantir_mensagem_recrutamento(
+                    canal_existente, membro
+                )
+                return
+
+        categoria = guild.get_channel(CATEGORIA_RECRUTAMENTO_ID)
+
+        permissoes = {
+            guild.default_role: discord.PermissionOverwrite(
+                view_channel=False
+            ),
+            membro: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True
+            )
+        }
+
+        for cargo_id in (CARGO_MODERADOR_ID, CARGO_ADM_ID):
+            cargo = guild.get_role(cargo_id)
+            if cargo:
+                permissoes[cargo] = discord.PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    read_message_history=True
+                )
+
+        if guild.me:
+            permissoes[guild.me] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                manage_channels=True
+            )
+
+        nome_canal = f"recrutamento-{membro.name}".lower()
+        nome_canal = nome_canal.replace(" ", "-")[:90]
+
+        canal = await guild.create_text_channel(
+            name=nome_canal,
+            category=(
+                categoria
+                if isinstance(categoria, discord.CategoryChannel)
+                else None
+            ),
+            overwrites=permissoes,
+            topic=topico,
+            reason="Novo recrutamento Sentinela."
+        )
+
+        await garantir_mensagem_recrutamento(canal, membro)
+        print(f"[RECRUTAMENTO] Canal criado para {membro}.")
+
+    except discord.Forbidden:
+        print(
+            "[RECRUTAMENTO] Sem permissão para criar canal. "
+            "Confira Gerenciar canais."
+        )
+
+    except discord.HTTPException as erro:
+        print(f"[ERRO CRIAR RECRUTAMENTO] {erro}")
+
+    finally:
+        recrutamentos_em_criacao.discard(membro.id)
+
+
+# ==========================================
+# FILA DA GUERRA DE GUILDA
+# ==========================================
+
+def criar_embed_fila(guild_id):
+    fila = obter_fila(guild_id)
+
+    embed = discord.Embed(
+        title="𝐆𝐔𝐄𝐑𝐑𝐀 𝐃𝐄 𝐆𝐔𝐈𝐋𝐃𝐀",
+        description="**FORME SEU SQUAD E AMASSE GERAL NA GUERRA!**",
+        color=discord.Color.gold()
+    )
+
+    embed.add_field(
+        name=f"{EMOJI_SQUAD} JOGADORES NA FILA",
+        value=f"**{len(fila)} / {LIMITE_FILA} jogadores**",
+        inline=False
+    )
+
+    if fila:
+        jogadores = []
+
+        for indice, jogador in enumerate(fila, start=1):
+            jogadores.append(
+                f"**{indice}.** <@{jogador['id']}>\n"
+                f"{jogador['emoji']} **{jogador['funcao']}**"
+            )
+
+        embed.add_field(
+            name="\u200b",
+            value="\n\n".join(jogadores),
+            inline=False
+        )
+    else:
+        embed.add_field(
+            name="\u200b",
+            value="A fila está vazia. Entre e forme seu squad!",
+            inline=False
+        )
+
+    embed.set_footer(text="SENTINELA • GUERRA DE GUILDA")
+    embed.set_thumbnail(url=EMOJI_SENTINELA_URL)
+
+    return embed
+
+
+async def atualizar_mensagem_fila(guild):
+    dados = mensagens_fila.get(guild.id)
+
+    if not dados:
+        return
+
+    canal_id, mensagem_id = dados
+    canal = guild.get_channel(canal_id)
+
+    if not isinstance(canal, discord.TextChannel):
+        return
+
+    try:
+        mensagem = await canal.fetch_message(mensagem_id)
+        await mensagem.edit(
+            embed=criar_embed_fila(guild.id),
+            view=FilaView()
+        )
+
+    except discord.NotFound:
+        print("[FILA] A mensagem da fila foi apagada.")
+
+    except discord.Forbidden:
+        print("[FILA] Sem permissão para editar a mensagem.")
+
+    except discord.HTTPException as erro:
+        print(f"[ERRO ATUALIZAR FILA] {erro}")
+
+
+async def criar_canal_squad(guild, fila):
+    canal_anterior_id = canais_squad.get(guild.id)
+
+    if canal_anterior_id:
+        canal_anterior = guild.get_channel(canal_anterior_id)
+        if canal_anterior:
+            try:
+                await canal_anterior.delete(
+                    reason="Preparando um novo squad."
+                )
+            except discord.HTTPException as erro:
+                print(f"[ERRO EXCLUIR CANAL ANTERIOR] {erro}")
+
+    permissoes = {
+        guild.default_role: discord.PermissionOverwrite(
+            view_channel=False
+        )
+    }
+
+    for jogador in fila:
+        membro = guild.get_member(jogador["id"])
+        if membro:
+            permissoes[membro] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True
+            )
+
+    for cargo_id in (CARGO_MODERADOR_ID, CARGO_ADM_ID):
+        cargo = guild.get_role(cargo_id)
+        if cargo:
+            permissoes[cargo] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True
+            )
+
+    if guild.me:
+        permissoes[guild.me] = discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            read_message_history=True,
+            manage_channels=True
+        )
+
+    canal = await guild.create_text_channel(
+        name="🔒・squad-sentinela",
+        overwrites=permissoes,
+        reason="Fila da Guerra de Guilda completa."
+    )
+
+    canais_squad[guild.id] = canal.id
+
+    mencoes = "\n".join(
+        f"<@{jogador['id']}> — {jogador['emoji']} "
+        f"**{jogador['funcao']}**"
+        for jogador in fila
+    )
+
+    await canal.send(
+        "🦁 **SQUAD COMPLETO!**\n\n"
+        f"{mencoes}\n\n"
+        "Organizem-se para a Guerra de Guilda e boa sorte!"
+    )
+
+    return canal
+
+
+# ==========================================
+# REGISTRAR JOGADOR
+# ==========================================
+
+async def registrar_jogador(interaction, funcao, emoji):
+    guild = interaction.guild
+
+    if guild is None:
+        await interaction.response.send_message(
+            "Não consegui identificar o servidor.",
+            ephemeral=True
+        )
+        return
+
+    await interaction.response.defer(ephemeral=True, thinking=True)
+
+    fila = obter_fila(guild.id)
+    membro_id = interaction.user.id
+
+    if any(j["id"] == membro_id for j in fila):
+        await interaction.edit_original_response(
+            content="⚠️ Você já está na fila!",
+            view=None
+        )
+        return
+
+    if len(fila) >= LIMITE_FILA:
+        await interaction.edit_original_response(
+            content="❌ A fila já está completa!",
+            view=None
+        )
+        return
+
+    fila.append({
+        "id": membro_id,
+        "funcao": funcao,
+        "emoji": str(emoji)
+    })
+
+    await interaction.edit_original_response(
+        content=f"✅ Você entrou na fila como **{funcao}**!",
+        view=None
+    )
+
+    try:
+        await atualizar_mensagem_fila(guild)
+
+        if (
+            len(fila) == LIMITE_FILA
+            and guild.id not in squads_em_criacao
+        ):
+            squads_em_criacao.add(guild.id)
+            try:
+                await criar_canal_squad(guild, list(fila))
+            finally:
+                squads_em_criacao.discard(guild.id)
+
+    except Exception as erro:
+        print(
+            f"[ERRO PROCESSAMENTO FILA] "
+            f"{type(erro).__name__}: {erro!r}"
+        )
+
+
+# ==========================================
+# ESCOLHA DE FUNCAO
+# ==========================================
+
+class EscolherFuncaoView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+
+    @discord.ui.button(
+        label="Rushador",
+        emoji=EMOJI_RUSHADOR,
+        style=discord.ButtonStyle.secondary,
+        row=0
+    )
+    async def rushador(self, interaction, button):
+        await registrar_jogador(
+            interaction, "Rushador", EMOJI_RUSHADOR
+        )
+
+    @discord.ui.button(
+        label="Fuzileiro",
+        emoji=EMOJI_FUZILEIRO,
+        style=discord.ButtonStyle.secondary,
+        row=0
+    )
+    async def fuzileiro(self, interaction, button):
+        await registrar_jogador(
+            interaction, "Fuzileiro", EMOJI_FUZILEIRO
+        )
+
+    @discord.ui.button(
+        label="Atirador",
+        emoji=EMOJI_ATIRADOR,
+        style=discord.ButtonStyle.secondary,
+        row=1
+    )
+    async def atirador(self, interaction, button):
+        await registrar_jogador(
+            interaction, "Atirador", EMOJI_ATIRADOR
+        )
+
+    @discord.ui.button(
+        label="Suporte",
+        emoji=EMOJI_SUPORTE,
+        style=discord.ButtonStyle.secondary,
+        row=1
+    )
+    async def suporte(self, interaction, button):
+        await registrar_jogador(
+            interaction, "Suporte", EMOJI_SUPORTE
+        )
+
+    @discord.ui.button(
+        label="Granadeiro",
+        emoji=EMOJI_GRANADEIRO,
+        style=discord.ButtonStyle.secondary,
+        row=1
+    )
+    async def granadeiro(self, interaction, button):
+        await registrar_jogador(
+            interaction, "Granadeiro", EMOJI_GRANADEIRO
+        )
+
+
+# ==========================================
+# BOTOES PRINCIPAIS DA FILA
+# ==========================================
+
+class FilaView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="ENTRAR NA FILA",
+        emoji=EMOJI_ENTRAR,
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_entrar_fila"
+    )
+    async def entrar(self, interaction, button):
+        try:
+            guild = interaction.guild
+
+            if guild is None:
+                await interaction.response.send_message(
+                    "❌ Esse botão só funciona no servidor.",
+                    ephemeral=True
+                )
+                return
+
+            fila = obter_fila(guild.id)
+            membro_id = interaction.user.id
+
+            if any(j["id"] == membro_id for j in fila):
+                await interaction.response.send_message(
+                    "⚠️ Você já está na fila!",
+                    ephemeral=True
+                )
+                return
+
+            if len(fila) >= LIMITE_FILA:
+                await interaction.response.send_message(
+                    "❌ A fila já está completa!",
+                    ephemeral=True
+                )
+                return
+
+            await interaction.response.send_message(
+                content=(
+                    "**🎮 ESCOLHA SUA FUNÇÃO**\n"
+                    "Selecione sua função para a Guerra de Guilda:"
+                ),
+                view=EscolherFuncaoView(),
+                ephemeral=True
+            )
+
+            print(
+                f"[FILA] Menu enviado para {interaction.user} "
+                f"(ID {interaction.user.id})."
+            )
+
+        except Exception as erro:
+            print(
+                f"[ERRO AO ABRIR FUNCOES] "
+                f"{type(erro).__name__}: {erro!r}"
+            )
+
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(
+                        "❌ Não consegui abrir as funções. "
+                        "Tente novamente.",
+                        ephemeral=True
+                    )
+            except Exception as erro_resposta:
+                print(f"[ERRO AO RESPONDER] {erro_resposta!r}")
+
+    @discord.ui.button(
+        label="SAIR DA FILA",
+        emoji="❌",
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_sair_fila"
+    )
+    async def sair(self, interaction, button):
+        try:
+            await interaction.response.defer(
+                ephemeral=True, thinking=True
+            )
+
+            guild = interaction.guild
+
+            if guild is None:
+                await interaction.edit_original_response(
+                    content="❌ Não consegui identificar o servidor.",
+                    view=None
+                )
+                return
+
+            fila = obter_fila(guild.id)
+            membro_id = interaction.user.id
+
+            indice = next(
+                (
+                    i for i, jogador in enumerate(fila)
+                    if jogador["id"] == membro_id
+                ),
+                None
+            )
+
+            if indice is None:
+                await interaction.edit_original_response(
+                    content="⚠️ Você não está na fila.",
+                    view=None
+                )
+                return
+
+            fila.pop(indice)
+            canal_id = canais_squad.pop(guild.id, None)
+
+            if canal_id:
+                canal = guild.get_channel(canal_id)
+                if canal:
+                    try:
+                        await canal.delete(
+                            reason="Um jogador saiu da fila."
+                        )
+                    except discord.HTTPException as erro:
+                        print(f"[ERRO EXCLUIR SQUAD] {erro}")
+
+            await atualizar_mensagem_fila(guild)
+
+            await interaction.edit_original_response(
+                content="✅ Você saiu da fila!",
+                view=None
+            )
+
+        except Exception as erro:
+            print(
+                f"[ERRO BOTAO SAIR] "
+                f"{type(erro).__name__}: {erro!r}"
+            )
+
+            try:
+                if interaction.response.is_done():
+                    await interaction.edit_original_response(
+                        content="❌ Ocorreu um erro ao sair da fila.",
+                        view=None
+                    )
+                else:
+                    await interaction.response.send_message(
+                        "❌ Ocorreu um erro ao sair da fila.",
+                        ephemeral=True
+                    )
+            except Exception as erro_resposta:
+                print(f"[ERRO RESPOSTA SAIR] {erro_resposta!r}")
+
+
+# ==========================================
+# COMANDOS
+# ==========================================
+
+@bot.command()
+async def ping(ctx):
+    await ctx.send("🏓 Pong! Sentinela está online.")
+
+
+@bot.command()
+async def sentinela(ctx):
+    await ctx.send(
+        "🦁 **SENTINELA**\n"
+        "A tropa está na área!"
+    )
+
+
+@bot.command()
+async def ajuda(ctx):
+    await ctx.send(
+        "**🦁 COMANDOS SENTINELA**\n\n"
+        "`!ping` — testa o bot\n"
+        "`!sentinela` — mensagem da guilda\n"
+        "`!ajuda` — mostra os comandos\n"
+        "`!fila` — publica a fila da Guerra de Guilda\n"
+        "`!listaremojis` — lista os emojis do servidor\n"
+        "`!publicarpasse` — publica o anúncio do passe Booyah"
+    )
+
+
+@bot.command()
+@commands.has_permissions(manage_guild=True)
+async def fila(ctx):
+    if ctx.guild is None:
+        return
+
+    mensagem = await ctx.send(
+        embed=criar_embed_fila(ctx.guild.id),
+        view=FilaView()
+    )
+
+    mensagens_fila[ctx.guild.id] = (
+        ctx.channel.id,
+        mensagem.id
+    )
+
+    print(
+        f"[FILA] Mensagem publicada. "
+        f"Canal={ctx.channel.id}, mensagem={mensagem.id}"
+    )
+
+
+@fila.error
+async def fila_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(
+            "❌ Você precisa da permissão **Gerenciar servidor** "
+            "para publicar a fila."
+        )
+    else:
+        print(f"[ERRO COMANDO FILA] {error!r}")
+
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def listaremojis(ctx):
+    linhas = [
+        f"{emoji} — `{emoji.id}`"
+        for emoji in ctx.guild.emojis
+    ]
+
+    if not linhas:
+        await ctx.send(
+            "Não encontrei emojis personalizados neste servidor."
+        )
+        return
+
+    texto = "\n".join(linhas)
+
+    for inicio in range(0, len(texto), 1800):
+        await ctx.send(texto[inicio:inicio + 1800])
+
+
+# ==========================================
+# SISTEMA DE AQUISICAO DE TICKETS
+# ==========================================
+
+PRECO_TICKET_CENTAVOS = 50
+ARQUIVO_PARTICIPANTES_PASSE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "participantes_passe.json"
+)
+
+
+def carregar_dados_passe():
+    try:
+        with open(ARQUIVO_PARTICIPANTES_PASSE, "r", encoding="utf-8") as arquivo:
+            dados = json.load(arquivo)
+        if not isinstance(dados, dict):
+            raise ValueError("Formato de dados inválido")
+        dados.setdefault("participantes", {})
+        dados.setdefault("anuncio", None)
+        return dados
+    except FileNotFoundError:
+        return {"participantes": {}, "anuncio": None}
+    except (json.JSONDecodeError, OSError, ValueError) as erro:
+        print(f"[ERRO LER PARTICIPANTES DO PASSE] {erro!r}")
+        return {"participantes": {}, "anuncio": None}
+
+
+def salvar_dados_passe():
+    temporario = ARQUIVO_PARTICIPANTES_PASSE + ".tmp"
+    with open(temporario, "w", encoding="utf-8") as arquivo:
+        json.dump(dados_passe, arquivo, ensure_ascii=False, indent=2)
+    os.replace(temporario, ARQUIVO_PARTICIPANTES_PASSE)
+
+
+dados_passe = carregar_dados_passe()
+
+
+def formatar_reais(centavos):
+    reais = centavos // 100
+    centavos_restantes = centavos % 100
+    return f"R$ {reais:,}".replace(",", ".") + (
+        f",{centavos_restantes:02d}"
+    )
+
+
+class QuantidadeTicketsModal(discord.ui.Modal):
+    def __init__(self):
+        super().__init__(title="Adquirir Tickets")
+
+        self.quantidade = discord.ui.TextInput(
+            label="Quantidade de tickets",
+            placeholder="Digite quantos tickets deseja (ex.: 12)",
+            required=True,
+            min_length=1,
+            max_length=5
+        )
+        self.add_item(self.quantidade)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        texto = str(self.quantidade.value).strip()
+
+        if not texto.isdigit():
+            await interaction.response.send_message(
+                "❌ Digite somente um número inteiro positivo.",
+                ephemeral=True
+            )
+            return
+
+        quantidade = int(texto)
+
+        if quantidade < 1 or quantidade > 99999:
+            await interaction.response.send_message(
+                "❌ Escolha uma quantidade entre 1 e 99.999 tickets.",
+                ephemeral=True
+            )
+            return
+
+        total_centavos = quantidade * PRECO_TICKET_CENTAVOS
+
+        embed = discord.Embed(
+            title=(
+                "<a:ac_presente_tkf15259294509806429:1561924913571569716> "
+                "𝐂𝐎𝐍𝐅𝐈𝐑𝐌𝐀𝐑 𝐂𝐎𝐌𝐏𝐑𝐀 𝐃𝐎𝐒 𝐓𝐈𝐂𝐊𝐄𝐓𝐒"
+            ),
+            description=(
+                f"Salve, {interaction.user.mention}!\n\n"
+                "**Confira os dados da sua solicitacao "
+                "antes de continuar.**"
+            ),
+            color=discord.Color.gold()
+        )
+
+        embed.add_field(
+            name="<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810> Quantidade",
+            value=f"**{quantidade:,} tickets**".replace(",", "."),
+            inline=True
+        )
+
+        embed.add_field(
+            name="<:cifrao_sentry:1563067820131098624> Preco por ticket",
+            value=f"**{formatar_reais(PRECO_TICKET_CENTAVOS)}**",
+            inline=True
+        )
+
+        embed.add_field(
+            name="<:faturamento_sentry:1563062715222720574> Valor total",
+            value=f"**{formatar_reais(total_centavos)}**",
+            inline=False
+        )
+
+        embed.add_field(
+            name="<:suporte_sentry:1563328550629675018> 𝐏𝐑𝐀𝐙𝐎 𝐃𝐄 𝐀𝐓𝐄𝐍𝐃𝐈𝐌𝐄𝐍𝐓𝐎",
+            value=(
+                "<:ponto_amarelo_lunar_215259154756:1562283913827586119> "
+                "<a:ayellow_parceiro1525943180707495:1562282610443419688> "
+                "Um administrador irá atender você e enviar a chave PIX "
+                "em até **5 𝑀𝐼𝑁𝑈𝑇𝑂𝑆**."
+            ),
+            inline=False
+        )
+        embed.set_footer(
+            text="SENTINELA • PASSE BOOYAH"
+        )
+        await interaction.response.send_message(
+            embed=embed,
+            view=ConfirmarCompraView(
+                comprador_id=interaction.user.id,
+                quantidade=quantidade
+            ),
+            ephemeral=True
+        )
+
+
+class ConfirmarCompraView(discord.ui.View):
+    def __init__(self, comprador_id: int, quantidade: int):
+        super().__init__(timeout=300)
+        self.comprador_id = comprador_id
+        self.quantidade = quantidade
+
+    async def interaction_check(
+        self, interaction: discord.Interaction
+    ) -> bool:
+        if interaction.user.id != self.comprador_id:
+            await interaction.response.send_message(
+                "❌ Esta confirmação pertence a outro jogador.",
+                ephemeral=True
+            )
+            return False
+        return True
+
+    @discord.ui.button(
+        label="CONFIRMAR COMPRA",
+        style=discord.ButtonStyle.secondary
+    )
+    async def confirmar(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        guild = interaction.guild
+
+        if guild is None:
+            await interaction.response.send_message(
+                "❌ Este botão só funciona dentro do servidor.",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.defer(
+            ephemeral=True, thinking=True
+        )
+
+        comprador = interaction.user
+        total_centavos = (
+            self.quantidade * PRECO_TICKET_CENTAVOS
+        )
+
+        permissoes = {
+            guild.default_role: discord.PermissionOverwrite(
+                view_channel=False
+            ),
+            comprador: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                attach_files=True,
+                embed_links=True
+            )
+        }
+
+        for cargo_id in (CARGO_ADM_ID, CARGO_MODERADOR_ID):
+            cargo = guild.get_role(cargo_id)
+            if cargo:
+                permissoes[cargo] = discord.PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    read_message_history=True
+                )
+
+        if guild.me:
+            permissoes[guild.me] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                manage_channels=True
+            )
+
+     
+        nome_seguro = "".join(
+            caractere.lower()
+            if caractere.isalnum() else "-"
+            for caractere in comprador.name
+        ).strip("-")[:40] or "jogador"
+
+        try:
+            canal_compra = await guild.create_text_channel(
+                name=f"tickets-{nome_seguro}",
+                overwrites=permissoes,
+                topic=(
+                    f"compra_tickets_usuario:{comprador.id} "
+                    f"quantidade:{self.quantidade} "
+                    "STATUS: AGUARDANDO PAGAMENTO"
+                ),
+                reason="Solicitacao de tickets do Passe Booyah"
+            )
+
+            embed_compra = discord.Embed(
+                title="𝐒𝐎𝐋𝐈𝐂𝐈𝐓𝐀ÇÃ𝐎 𝐃𝐄 𝐓𝐈𝐂𝐊𝐄𝐓𝐒",
+                description=(
+                    f"Salve, {comprador.mention}!\n\n"
+                    "<:suporte_sentry:1563328550629675018> "
+                    "**Sua solicitação foi registrada com sucesso!**\n\n"
+                    "Aguarde até que um administrador venha atender você."
+                ),
+                color=discord.Color.gold()
+            )
+
+            embed_compra.add_field(
+                name="<:Personagem_Sentry:1563331978110046300>  Comprador",
+                value=f"{comprador.mention}",
+                inline=False
+            )
+
+            embed_compra.add_field(
+                name="<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810> Quantidade solicitada",
+                value=f"**{self.quantidade:,} tickets**".replace(",", "."),
+                inline=True
+            )
+
+            embed_compra.add_field(
+                name="<:cifrao_sentry:1563067820131098624> Preço unitário",
+                value=f"**{formatar_reais(PRECO_TICKET_CENTAVOS)}**",
+                inline=True
+            )
+
+            embed_compra.add_field(
+                name="<:faturamento_sentry:1563062715222720574> Valor total",
+                value=f"**{formatar_reais(total_centavos)}**",
+                inline=False
+            )
+
+            embed_compra.set_footer(
+                text="SENTINELA • PASSE BOOYAH"
+            )
+            await canal_compra.send(
+                content=(
+                    f"Salve, {comprador.mention}!\n\n"
+                    "||"
+                    "<@&1556441469978411032> "
+                    "<@&1556530332281344082>"
+                    "||"
+                ),
+                embed=embed_compra,
+                view=ConfirmarPagamentoView(),
+                allowed_mentions=discord.AllowedMentions(
+                    users=True,
+                    roles=True,
+                    everyone=False
+                )
+            )
+
+            await interaction.edit_original_response(
+                content=(
+                    f"✅ Sua solicitação foi criada!\n"
+                    f"Canal privado: {canal_compra.mention}\n"
+                    f"**Quantidade:** {self.quantidade} tickets\n"
+                    f"**Total:** {formatar_reais(total_centavos)}"
+                ),
+                view=None
+            )
+
+            self.stop()
+
+        except discord.Forbidden:
+            await interaction.edit_original_response(
+                content=(
+                    "❌ Não consegui criar o canal privado. "
+                    "Confira se o bot tem as permissões "
+                    "**Gerenciar canais** e **Ver canais**."
+                ),
+                view=None
+            )
+
+        except discord.HTTPException as erro:
+            print(f"[ERRO CRIAR COMPRA] {erro!r}")
+            await interaction.edit_original_response(
+                content=(
+                    "❌ O Discord não permitiu criar o canal. "
+                    "Tente novamente ou avise a administração."
+                ),
+                view=None
+            )
+
+    @discord.ui.button(
+        label="CANCELAR COMPRA",
+        style=discord.ButtonStyle.secondary
+    )
+    async def cancelar(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        await interaction.response.edit_message(
+            content="❌ Solicitação cancelada.",
+            embed=None,
+            view=None
+        )
+
+
+async def gerar_imagem_participantes(registros):
+    """Gera uma imagem com avatar, nome, tickets confirmados e total pago."""
+    largura = 900
+    altura_cabecalho = 130
+    altura_linha = 76
+    limite = 60
+    itens = sorted(
+        registros.items(),
+        key=lambda item: int(item[1].get("tickets", 0)),
+        reverse=True
+    )[:limite]
+
+    altura = max(altura_cabecalho + 30, altura_cabecalho + len(itens) * altura_linha + 30)
+    imagem = Image.new("RGB", (largura, altura), "#171717")
+    desenho = ImageDraw.Draw(imagem)
+    fonte_titulo = ImageFont.load_default(size=32)
+    fonte_normal = ImageFont.load_default(size=23)
+    fonte_pequena = ImageFont.load_default(size=18)
+
+    desenho.rectangle((0, 0, largura, altura_cabecalho), fill="#252525")
+    desenho.rectangle((0, 0, 12, altura), fill="#FFC800")
+    desenho.text((36, 28), "PARTICIPANTES DO PASSE BOOYAH", fill="#FFC800", font=fonte_titulo)
+    desenho.text(
+        (36, 78),
+        f"Pagamentos confirmados: {len(registros)}",
+        fill="#FFFFFF",
+        font=fonte_normal
+    )
+
+    for indice, (usuario_id, registro) in enumerate(itens):
+        y = altura_cabecalho + indice * altura_linha
+        if indice % 2 == 0:
+            desenho.rounded_rectangle(
+                (24, y + 4, largura - 24, y + altura_linha - 4),
+                radius=12,
+                fill="#202020"
+            )
+
+        avatar_x, avatar_y, tamanho_avatar = 42, y + 14, 48
+        try:
+            usuario = bot.get_user(int(usuario_id))
+            if usuario is None:
+                usuario = await bot.fetch_user(int(usuario_id))
+            asset = usuario.display_avatar.replace(size=64, static_format="png")
+            dados_avatar = await asset.read()
+            avatar = Image.open(io.BytesIO(dados_avatar)).convert("RGBA")
+            avatar = ImageOps.fit(avatar, (tamanho_avatar, tamanho_avatar))
+            mascara = Image.new("L", (tamanho_avatar, tamanho_avatar), 0)
+            ImageDraw.Draw(mascara).ellipse((0, 0, tamanho_avatar - 1, tamanho_avatar - 1), fill=255)
+            imagem.paste(avatar, (avatar_x, avatar_y), mascara)
+            nome = usuario.display_name
+        except Exception:
+            nome = str(registro.get("nome", "Jogador"))
+
+        tickets = int(registro.get("tickets", 0))
+        total_centavos = tickets * PRECO_TICKET_CENTAVOS
+        nome = str(nome)[:38]
+        desenho.text((108, y + 12), nome, fill="#FFFFFF", font=fonte_normal)
+        desenho.text(
+            (108, y + 42),
+            f"{tickets:,} tickets".replace(",", "."),
+            fill="#D5D5D5",
+            font=fonte_pequena
+        )
+        desenho.text(
+            (largura - 250, y + 27),
+            f"Total: {formatar_reais(total_centavos)}",
+            fill="#FFC800",
+            font=fonte_pequena
+        )
+
+    saida = io.BytesIO()
+    imagem.save(saida, format="PNG", optimize=True)
+    saida.seek(0)
+    return saida, len(registros) > limite
+
+
+class AdquirirTicketsView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        total_participantes = len(dados_passe["participantes"])
+        for item in self.children:
+            if getattr(item, "custom_id", None) == "sentinela_participantes":
+                item.label = f"PARTICIPANTES ({total_participantes})"
+
+    @discord.ui.button(
+        label="ADQUIRIR TICKETS",
+        emoji="<a:aabcyellowestrelatkf152591544208:1561953163840462952>",
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_adquirir_tickets"
+    )
+    async def adquirir(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        await interaction.response.send_modal(QuantidadeTicketsModal())
+
+    @discord.ui.button(
+        label="PARTICIPANTES (0)",
+        emoji=discord.PartialEmoji(name="membros_sentry", id=1564489956766916698),
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_participantes"
+    )
+    async def participantes(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        registros = dados_passe["participantes"]
+        if not registros:
+            embed = discord.Embed(
+                title="𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐍𝐓𝐄𝐒 𝐃𝐎 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇",
+                description=(
+                    "Ainda não há participantes. Eles aparecerão aqui "
+                    "depois que um administrador confirmar o pagamento."
+                ),
+                color=discord.Color.gold()
+            )
+            embed.set_footer(text="SENTINELA • PASSE BOOYAH")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        try:
+            imagem, parcial = await gerar_imagem_participantes(registros)
+            arquivo = discord.File(imagem, filename="participantes_passe.png")
+            embed = discord.Embed(
+                title="𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐍𝐓𝐄𝐒 𝐃𝐎 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇",
+                description=(
+                    f"Pagamentos confirmados: **{len(registros)}**\n"
+                    "A imagem mostra os tickets confirmados e o total por participante."
+                    + ("\n*Exibindo os primeiros 60 participantes.*" if parcial else "")
+                ),
+                color=discord.Color.gold()
+            )
+            embed.set_image(url="attachment://participantes_passe.png")
+            embed.set_footer(text="SENTINELA • PASSE BOOYAH")
+            await interaction.followup.send(
+                embed=embed,
+                file=arquivo,
+                ephemeral=True
+            )
+        except Exception as erro:
+            print(f"[ERRO GERAR IMAGEM PARTICIPANTES] {type(erro).__name__}: {erro!r}")
+            await interaction.followup.send(
+                "❌ Não consegui montar a imagem dos participantes. "
+                "Confira se o Pillow está instalado e tente novamente.",
+                ephemeral=True
+            )
+
+
+class ConfirmarPagamentoView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="CONFIRMAR PAGAMENTO",
+        style=discord.ButtonStyle.secondary,
+        custom_id="sentinela_confirmar_pagamento_passe"
+    )
+    async def confirmar_pagamento(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        if not eh_recrutador(interaction.user):
+            await interaction.response.send_message(
+                "Você não tem permissão para confirmar pagamentos.",
+                ephemeral=True
+            )
+            return
+
+        canal = interaction.channel
+        if not isinstance(canal, discord.TextChannel) or not canal.topic:
+            await interaction.response.send_message(
+                "Não consegui identificar os dados desta compra.",
+                ephemeral=True
+            )
+            return
+
+        if "STATUS: PAGAMENTO CONFIRMADO" in canal.topic:
+            await interaction.response.send_message(
+                "Este pagamento já foi confirmado anteriormente.",
+                ephemeral=True
+            )
+            return
+
+        if "STATUS: AGUARDANDO PAGAMENTO" not in canal.topic:
+            await interaction.response.send_message(
+                "Este canal não está aguardando confirmação de pagamento.",
+                ephemeral=True
+            )
+            return
+
+        dados_topico = {}
+        for parte in canal.topic.split():
+            if ":" in parte:
+                chave, valor = parte.split(":", 1)
+                if chave in ("compra_tickets_usuario", "quantidade"):
+                    try:
+                        dados_topico[chave] = int(valor)
+                    except ValueError:
+                        pass
+
+        comprador_id = dados_topico.get("compra_tickets_usuario")
+        quantidade = dados_topico.get("quantidade")
+        if not comprador_id or not quantidade or quantidade < 1:
+            await interaction.response.send_message(
+                "Não consegui ler o comprador ou a quantidade neste canal.",
+                ephemeral=True
+            )
+            return
+
+        membro = interaction.guild.get_member(comprador_id) if interaction.guild else None
+        if membro is None and interaction.guild:
+            try:
+                membro = await interaction.guild.fetch_member(comprador_id)
+            except discord.HTTPException:
+                membro = None
+        nome = membro.display_name if membro else f"Usuário {comprador_id}"
+
+        tinha_registro_anterior = str(comprador_id) in dados_passe["participantes"]
+        registro_anterior = dict(
+            dados_passe["participantes"].get(str(comprador_id), {})
+        )
+        registro = dados_passe["participantes"].get(str(comprador_id), {
+            "nome": nome,
+            "tickets": 0
+        })
+        registro["nome"] = nome
+        registro["tickets"] = int(registro.get("tickets", 0)) + quantidade
+        dados_passe["participantes"][str(comprador_id)] = registro
+
+        novo_topico = canal.topic.replace(
+            "STATUS: AGUARDANDO PAGAMENTO",
+            "STATUS: PAGAMENTO CONFIRMADO"
+        )
+        try:
+            await canal.edit(
+                topic=novo_topico,
+                reason=f"Pagamento confirmado por {interaction.user}"
+            )
+            salvar_dados_passe()
+        except (discord.HTTPException, OSError) as erro:
+            if tinha_registro_anterior:
+                dados_passe["participantes"][str(comprador_id)] = registro_anterior
+            else:
+                dados_passe["participantes"].pop(str(comprador_id), None)
+            try:
+                salvar_dados_passe()
+            except OSError:
+                pass
+            try:
+                await canal.edit(
+                    topic=novo_topico.replace(
+                        "STATUS: PAGAMENTO CONFIRMADO",
+                        "STATUS: AGUARDANDO PAGAMENTO"
+                    ),
+                    reason="Reverter confirmação que não pôde ser salva"
+                )
+            except discord.HTTPException:
+                pass
+            await interaction.response.send_message(
+                f"Não consegui salvar a confirmação: {erro}",
+                ephemeral=True
+            )
+            return
+
+        try:
+            await atualizar_anuncio_participantes()
+        except Exception as erro:
+            print(f"[ERRO ATUALIZAR BOTAO PARTICIPANTES] {erro!r}")
+
+        await interaction.response.edit_message(view=None)
+        await interaction.followup.send(
+            (
+                f"✅ Pagamento confirmado por {interaction.user.mention}. "
+                f"Foram registrados {quantidade:,} tickets para {nome}."
+            ).replace(",", "."),
+            ephemeral=True
+        )
+
+async def atualizar_anuncio_participantes():
+    anuncio = dados_passe.get("anuncio")
+    if not anuncio:
+        return
+
+    canal_id = anuncio.get("canal_id")
+    mensagem_id = anuncio.get("mensagem_id")
+    if not canal_id or not mensagem_id:
+        return
+
+    canal = bot.get_channel(canal_id)
+    if canal is None:
+        canal = await bot.fetch_channel(canal_id)
+    mensagem = await canal.fetch_message(mensagem_id)
+    await mensagem.edit(view=AdquirirTicketsView())
+
+
+# ==========================================
+# PUBLICAR ANUNCIO DO PASSE BOOYAH
+# ==========================================
+
+@bot.command(name="publicarpasse")
+@commands.has_permissions(administrator=True)
+async def publicarpasse(ctx):
+    try:
+        canal = bot.get_channel(CANAL_PASSE_BOOYAAH_ID)
+
+        if canal is None:
+            canal = await bot.fetch_channel(
+                CANAL_PASSE_BOOYAAH_ID
+            )
+
+        if not isinstance(canal, discord.TextChannel):
+            await ctx.send(
+                "❌ O canal não é um canal de texto."
+            )
+            return
+
+        caminho_imagem = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "passe_booyah.jpg"
+        )
+
+        if not os.path.isfile(caminho_imagem):
+            await ctx.send(
+                "❌ Não encontrei passe_booyah.jpg na pasta do bot."
+            )
+            return
+
+
+        # TITULO E DESCRICAO
+        embed = discord.Embed(
+            title=(
+                f"{EMOJI_TITULO_PASSE} "
+                "𝐒𝐎𝐑𝐓𝐄𝐈𝐎 𝐃𝐄 𝐏𝐀𝐒𝐒𝐄 𝐁𝐎𝐎𝐘𝐀𝐇"
+            ),
+            color=discord.Color.gold()
+        )
+
+        # IMAGEM NO TOPO
+        embed.set_image(
+            url="attachment://passe_booyah.jpg"
+        )
+
+        # VALOR POR TICKET
+        embed.add_field(
+            name=(
+                f"{EMOJI_CARRINHO_PASSE} "
+                "𝐕𝐀𝐋𝐎𝐑 𝐏𝐎𝐑 𝐓𝐈𝐂𝐊𝐄𝐓"
+            ),
+            value=(
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_DINHEIRO_PASSE} "
+                "**R$ 0,50 por ticket**\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                "<:Emoji_0006_silhuetadecaminhaodee:1562282301155573810> "
+                "**A quantidade de compra dos tickets "
+                "sao ilimitadas**"
+            ),
+            inline=False
+        )
+
+        # INICIO DO EVENTO
+        embed.add_field(
+            name=(
+                f"{EMOJI_INICIO_EVENTO_PASSE} "
+                "𝐈𝐍𝐈́𝐂𝐈𝐎 𝐃𝐎 𝐄𝐕𝐄𝐍𝐓𝐎"
+            ),
+            value=(
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_ESTRELA_PASSE} "
+                "**Data de inicio: 25/10/2026**\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_TROFEU_PASSE} "
+                "Todas as informacoes sobre o evento serao divulgadas "
+                "no canal <#1556527447669997568>, incluindo o anuncio "
+                "do ganhador.\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_AVISO_EVENTO_PASSE} "
+                "Fique atento aos avisos da administracao "
+                "para nao perder nenhuma novidade!"
+            ),
+            inline=False
+        )
+
+        # TRANSPARENCIA
+        embed.add_field(
+            name=(
+                f"{EMOJI_TRANSPARENCIA_PASSE} "
+                "𝐓𝐑𝐀𝐍𝐒𝐏𝐀𝐑𝐄̂𝐍𝐂𝐈𝐀"
+            ),
+            value=(
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_DUVIDAS_PASSE} "
+                "A compra sera acompanhada pela administracao.\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_VERIFICADO_PASSE} "
+                "Sorteio transparente.\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_SUPORTE_PASSE} "
+                "Resultado divulgado no servidor."
+            ),
+            inline=False
+        )
+
+        # COMO PARTICIPAR
+        embed.add_field(
+            name=(
+                f"{EMOJI_PIX_PASSE} "
+                f"{EMOJI_MASTERCARD_PASSE} "
+                "𝐂𝐎𝐌𝐎 𝐏𝐀𝐑𝐓𝐈𝐂𝐈𝐏𝐀𝐑"
+            ),
+            value=(
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                "**Requisito:** ter jogado pelo menos uma partida "
+                "com algum membro da guilda Sentinela.\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                "<:faturamento_sentry:1563062715222720574> "
+                "**Compra de tickets:** clique no botao abaixo "
+                "para comprar e informe a quantidade desejada.\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                "<:amarelo_lunar:1561925242258067626> "
+                "**Atendimento privado:** voce sera direcionado "
+                "para um canal privado com a administracao.\n"
+                f"{EMOJI_PONTO_AMARELO_PASSE} "
+                f"{EMOJI_PIX_PASSE} "
+                "**Pagamento via Pix:** um administrador enviara "
+                "a chave Pix para voce realizar o pagamento."
+            ),
+            inline=False
+        )
+
+        embed.set_footer(
+            text="SENTINELA • PASSE BOOYAH"
+        )
+
+        arquivo = discord.File(
+            caminho_imagem,
+            filename="passe_booyah.jpg"
+        )
+
+        mensagem_anuncio = await canal.send(
+            embed=embed,
+            file=arquivo,
+            view=AdquirirTicketsView()
+        )
+        dados_passe["anuncio"] = {
+            "canal_id": canal.id,
+            "mensagem_id": mensagem_anuncio.id
+        }
+        salvar_dados_passe()
+
+        await ctx.send(
+            "Anuncio do Passe Booyah publicado com sucesso!"
+        )
+
+    except Exception as erro:
+        print(
+            f"[ERRO PUBLICAR PASSE] "
+            f"{type(erro).__name__}: {erro!r}"
+        )
+        await ctx.send(
+            f"Ocorreu um erro ao publicar o passe: {erro}"
+        )
+
+# ==========================================
+# INICIAR BOT
+# ==========================================
+
+if not TOKEN:
+    raise RuntimeError(
+        "A variável DISCORD_TOKEN não foi configurada no Railway."
+    )
+
+bot.add_view(AdquirirTicketsView())
+bot.add_view(ConfirmarPagamentoView())
+
+bot.run(TOKEN)
